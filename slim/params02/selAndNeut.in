@@ -1,6 +1,5 @@
 initialize() {
 	defineConstant("NN", 1000);
-	
 	defineConstant("ss", -(1e-3));
 	defineConstant("kk", 1);
 	defineConstant("L", 2500);
@@ -15,12 +14,11 @@ initialize() {
 	// uniqued down to the correct biallelic m2 state
 	initializeMutationType("m3", 0.5, "f", 0.0);
 	m3.convertToSubstitution = F;
+	
 	initializeMutationType("m4", 0.0, "f", 0.0);
-	m4.convertToSubstitution = F;
+	m4.convertToSubstitution = T;
 	m4.color = "cornflowerblue";
-	initializeMutationType("m5", 1.0, "f", 0.0);
-	m5.convertToSubstitution = F;
-	initializeGenomicElementType("g1", c(m3,m5), c(1.0,1.0));
+	initializeGenomicElementType("g1", c(m3,m4), c(1.0,1.0));
 	initializeGenomicElement(g1, 0, (L-1));
 	initializeMutationRate(u);
 	//	initializeRecombinationRate(1e-8);
@@ -36,16 +34,11 @@ initialize() {
 	defineConstant("MUT", target.mutations);
 	// then remove them; start with "aa" for all individuals
 	target.removeMutations();
-	
-	target = p1.genomes[0];
-	target.addNewDrawnMutation(m4, 0:(L-1));
-	defineConstant("Nmut", target.mutations);
-	// then remove them; start with "aa" for all individuals
-	target.removeMutations();
+
 	// log results
-	//	log = community.createLogFile("freq.csv", logInterval=100);
-	//	log.addTick();
-	//	log.addMeanSDColumns("freq", "sim.mutationFrequencies(NULL, MUT);");
+		log = community.createLogFile(paste0("freq", REPID), logInterval=1000);
+		log.addTick();
+		log.addMeanSDColumns("freq", "sim.mutationFrequencies(NULL, MUT);");
 }
 mutation(m3) {
 	// if we already have an m2 mutation at the site, allow
@@ -56,21 +49,12 @@ mutation(m3) {
 	return MUT[mut.position];
 }
 
-// same as above but for neutral ones
-mutation(m5) {
-	// if we already have an m4 mutation at the site, allow
-	// the new m5 mutation; we will remove the stack below
-	if (genome.containsMarkerMutation(m4, mut.position) & runif(1) < kk)
-		return T;
-	// no m4 mutation is present, so unique down
-	return Nmut[mut.position];
-}
 
 late() {
 	// implement back-mutations from A to a
 	sim.subpopulations.individuals.genome2.removeMutations();
 	m3muts = sim.mutationsOfType(m3);
-	m5muts = sim.mutationsOfType(m5);
+
 	// do we have any m3 mutations segregating?
 	// if so, we have m2/m3 stacked mutations to remove
 	if (m3muts.length() > 0)
@@ -88,34 +72,26 @@ late() {
 			genome.removeMutations(c(stacked_m3, stacked_m2));
 		}
 	}
-	if (m5muts.length() > 0)
-	{
-		genomes = sim.subpopulations.genomes;
-		counts = genomes.countOfMutationsOfType(m5);
-		hasStacked = genomes[counts > 0];
-		for (genome in hasStacked)
-		{
-			stacked_m5 = genome.mutationsOfType(m5);
-			stackPositions = stacked_m5.position;
-			all_m4 = genome.mutationsOfType(m4);
-			s = (match(all_m4.position, stackPositions) >= 0);
-			stacked_m4 = all_m4[s];
-			genome.removeMutations(c(stacked_m5, stacked_m4));
-		}
-	}
+	// remove mutations in the haploid genomes that have fixed
+        muts = sim.mutationsOfType(m4);
+        freqs = sim.mutationFrequencies(NULL, muts);
+        if (any(freqs == 0.5))
+            sim.subpopulations.genomes.removeMutations(muts[freqs == 0.5], T);
 }
-200000 late() {
-	ms2=unique(p1.sampleIndividuals(12).genome1.mutationsOfType(m2));
-	ms4=unique(p1.sampleIndividuals(12).genome1.mutationsOfType(m4));
-
+20000 late() {
+	ms2=unique(p1.genomes.mutationsOfType(m2));
+	ms4=unique(p1.genomes.mutationsOfType(m4));
 	cts2=p1.sampleIndividuals(12).genome1.mutationCountsInGenomes(ms2);
 	cts4=p1.sampleIndividuals(12).genome1.mutationCountsInGenomes(ms4);
-
+	
 	sfs2= sapply(c(0,1,2,3,4,5,6,7,8,9,10,11,12), "sum(cts2==applyValue);");
 	sfs4= sapply(c(0,1,2,3,4,5,6,7,8,9,10,11,12), "sum(cts4==applyValue);");
 	print(paste("SFSsel:",sfs2));
-        print(paste("SFSneu:",sfs4));
+	print(paste("SFSneu:",sfs4));
 	print(paste("FreqSel:", sum(sfs2)/L));
-	print(paste("FreqNeu:", sum(sfs4)/L));
+        print(paste("FreqNeu:", sum(sfs4)/L));
+        nn= length(sfs2)-1;
+	print(paste("PiSel:", sum(sfs2/L*(0:nn)*(nn:0))/nn/nn));
+	print(paste("PiNeu:", sum(sfs4/L*(0:nn)*(nn:0))/nn/nn));
 }
 
