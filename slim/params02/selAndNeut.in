@@ -1,3 +1,4 @@
+
 initialize() {
 	defineConstant("NN", 1000);
 	defineConstant("ss", -(1e-3));
@@ -23,6 +24,7 @@ initialize() {
 	initializeMutationRate(u);
 	//	initializeRecombinationRate(1e-8);
 	initializeRecombinationRate(0.0);
+	
 }
 
 1 early() {
@@ -34,11 +36,12 @@ initialize() {
 	defineConstant("MUT", target.mutations);
 	// then remove them; start with "aa" for all individuals
 	target.removeMutations();
-
+	
 	// log results
-		log = community.createLogFile(paste0("freq", REPID), logInterval=1000);
-		log.addTick();
-		log.addMeanSDColumns("freq", "sim.mutationFrequencies(NULL, MUT);");
+	log = community.createLogFile(paste0("sim", REPID, ".log"), logInterval=1000); // set REPID on command line
+	//log = community.createLogFile(paste0("freq", "001"), logInterval=1000);
+	log.addTick();
+	log.addMeanSDColumns("freq", "sim.mutationFrequencies(NULL, MUT);");
 }
 mutation(m3) {
 	// if we already have an m2 mutation at the site, allow
@@ -54,7 +57,7 @@ late() {
 	// implement back-mutations from A to a
 	sim.subpopulations.individuals.genome2.removeMutations();
 	m3muts = sim.mutationsOfType(m3);
-
+	
 	// do we have any m3 mutations segregating?
 	// if so, we have m2/m3 stacked mutations to remove
 	if (m3muts.length() > 0)
@@ -73,25 +76,38 @@ late() {
 		}
 	}
 	// remove mutations in the haploid genomes that have fixed
-        muts = sim.mutationsOfType(m4);
-        freqs = sim.mutationFrequencies(NULL, muts);
-        if (any(freqs == 0.5))
-            sim.subpopulations.genomes.removeMutations(muts[freqs == 0.5], T);
+	muts = sim.mutationsOfType(m4);
+	freqs = sim.mutationFrequencies(NULL, muts);
+	if (any(freqs == 0.5))
+		sim.subpopulations.genomes.removeMutations(muts[freqs == 0.5], T);
 }
-20000 late() {
+200000 late() {
 	ms2=unique(p1.genomes.mutationsOfType(m2));
 	ms4=unique(p1.genomes.mutationsOfType(m4));
-	cts2=p1.sampleIndividuals(12).genome1.mutationCountsInGenomes(ms2);
-	cts4=p1.sampleIndividuals(12).genome1.mutationCountsInGenomes(ms4);
+	genomes1form2=p1.sampleIndividuals(12).genome1;
+	genomes1form4=p1.sampleIndividuals(12).genome1;
+	cts2=genomes1form2.mutationCountsInGenomes(ms2);
+	cts4=genomes1form2.mutationCountsInGenomes(ms4);
 	
 	sfs2= sapply(c(0,1,2,3,4,5,6,7,8,9,10,11,12), "sum(cts2==applyValue);");
 	sfs4= sapply(c(0,1,2,3,4,5,6,7,8,9,10,11,12), "sum(cts4==applyValue);");
 	print(paste("SFSsel:",sfs2));
 	print(paste("SFSneu:",sfs4));
 	print(paste("FreqSel:", sum(sfs2)/L));
-        print(paste("FreqNeu:", sum(sfs4)/L));
-        nn= length(sfs2)-1;
-	print(paste("PiSel:", sum(sfs2/L*(0:nn)*(nn:0))/nn/nn));
-	print(paste("PiNeu:", sum(sfs4/L*(0:nn)*(nn:0))/nn/nn));
+	print(paste("FreqNeu:", sum(sfs4)/L));
+	nn= length(sfs2)-1;
+	print(paste("PiSel:", sum(sfs2*(0:nn)*(nn:0))*2/(nn-1)/nn/L));
+	print(paste("PiNeu:", sum(sfs4*(0:nn)*(nn:0))*2/(nn-1)/nn/L));
+   //extract all mutations and gt their positions	
+	m2_12=unique(genomes1form2.mutationsOfType(m2));
+	m4_12=unique(genomes1form2.mutationsOfType(m4));
+	posm2=m2_12.position;
+	posm4=m4_12.position;
+	gt2=(t(asInteger(sapply(posm2, "genomes1form2.containsMarkerMutation(m2, applyValue);", simplify="matrix"))));
+	gt2l=apply(gt2, 0, "paste(applyValue,sep=\",\");");
+	//print(gt2l);
+	writeFile(paste0("sim", REPID, ".gt2"), gt2l);
+	//p1.sampleIndividuals(12).genome1.output();
+	
 }
 

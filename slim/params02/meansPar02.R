@@ -1,7 +1,7 @@
 
 #setwd("~/git_repos/HRI/slim/params02/")
 setwd("~/temp/HRI/")
-ff <- dir(pattern = "hri100.o")
+ff <- dir(pattern = "hrigt2_100.o")
 
 an <- function(n){sum(1/1:(n-1))}
 an(12)
@@ -56,24 +56,39 @@ barplot(colMeans(sfsNeu)[2:12])
 sum(c(0.413224, 0.177479, 0.105818, 0.0728697, 0.0545042, 0.0430248, 
   0.035276, 0.0297467, 0.0256311, 0.0224646, 0.0199623) * 1:11 * 11:1)/12/12/2500
 
-
-
+brian <- c(0.401904,
+           0.177564,
+           0.107652,
+           0.074807,
+           0.056207,
+           0.044455,
+           0.036464,
+           0.030736,
+           0.026462,
+           0.023171,
+           0.020577
+)
+brian
 barplot(rbind(colMeans(sfsSel)[2:12]/sum(colMeans(sfsSel)[2:12]),
       colMeans(sfsNeu)[2:12]/sum(colMeans(sfsNeu)[2:12]),
-      piNeuHat/1:11/sum(piNeuHat/1:11),
+      brian,
       c(0.413224, 0.177479, 0.105818, 0.0728697, 0.0545042, 0.0430248, 
         0.035276, 0.0297467, 0.0256311, 0.0224646, 0.0199623)),
 beside = T,
 names.arg = 1:11,
 col=c("#FF000030","#00000040", "#00000080", "#000000"),
-main="Avg. SFS (100 replicate simulations)")
+main="Avg. SFS (200 replicate simulations)",
+log="")
 
 abline(h=0:8/20, col = "lightgrey", lty=3)
 #grid(nx = NA, ny=8)
 legend("top",
        pch=15,
        col=c("#FF000030","#00000040", "#00000080", "#000000"),
-       legend=c("Deleterious observed", "Neutral observed", "Neutral (obs. theta/i)", "Neutral expected (HRI notes/P&K)")
+       legend=c("Deleterious observed",
+                "Neutral observed",
+                "MC Integration",
+                "Polanski & Kimmel")
        )
 
 
@@ -161,6 +176,9 @@ tajd(from100$SFSneu[[2]])
 from100$DTSel <- sapply(from100$SFSsel, tajd)
 from100$DTNeu <- sapply(from100$SFSneu, tajd)
 
+
+theta_pi(c(253, 52, 7, 17, 1, 6, 0, 0, 5, 1, 0, 0, 0))/2500
+
 from100$piS <- sapply(from100$SFSsel, theta_pi)/2500
 from100$piN <- sapply(from100$SFSneu, theta_pi)/2500
 
@@ -171,7 +189,7 @@ from100$deltheS <- sapply(from100$SFSsel, function(x) 1- theta_pi(x)/theta_w(x))
 from100$deltheN <- sapply(from100$SFSneu, function(x) 1- theta_pi(x)/theta_w(x))
 
 
-
+head(from100)
 summary(lm(from100$DTSel~1))
 summary(lm(from100$DTNeu~1))
 
@@ -185,3 +203,82 @@ summary(lm(from100$deltheN~1))
 
 cbind(sapply(from100$SFSsel, function(x) theta_pi(x)/2500, USE.NAMES = F),
       from100$PiSel)
+1-coef(summary(lm(from100$pBarSel~1)))[1,1]
+
+
+
+# LD ----------------------------------------------------------------------
+
+
+gtFiles <- dir(pattern = "*gt2$")
+dd <- read.table(gtFiles[1],
+                 sep=",")
+getD <- function(gt1, gt2){
+  if (length(gt1) != length(gt2)) stop("gt1 and gt2 must be of equal length")
+  ll <- length(gt1)
+  p1 <- sum(gt1)/length(gt1)
+  p2 <- sum(gt2)/length(gt2)
+  sum(gt1 + gt2 == 2)/ll - p1*p2
+  
+}
+
+
+cov(a,b)/sqrt(var(a))/sqrt(var(b))
+summary(lm(a~b))
+getDandr <- function(gts, i, j){
+  c(D=getD(gts[i,], gts[j,]),
+    r=cor(unlist(gts[i,]), unlist(gts[j,]))
+    )
+}
+getD(dd[1,], dd[2,])
+cor(unlist(dd[1,]), unlist(dd[2,]))
+getDandr(dd, 1, 2)
+typeof(dd)
+as.matrix(dd)
+allPairs <- function(gts, FUN){
+  n <- nrow(gts)
+  dat <- as.matrix(gts)
+  rr <- numeric()
+  DD <- numeric()
+  for(i in 1:(n-1)){
+    #print(i)
+    for(j in (i+1):n){
+      Dr <- FUN(dat, i, j)
+      rr[length(rr)+1] <- Dr[2]
+      DD[length(DD)+1] <- Dr[1]
+    }
+  }
+  data.frame(D=DD,
+             r=rr)
+}
+
+df <- allPairs(dd, getDandr)
+hist(df[,1])
+getMeanMed <- function(x){
+  c(mean=mean(x), med=median(x))
+}
+getMeanMed(df$D)
+t0 <- Sys.time()
+dAvgs <- sapply(gtFiles, function(x){
+  dd <- read.table(x, sep=",")
+  dd <- dd[apply(dd, 1, sd)!=0,] # remove sites invariant in sample
+  print(paste0("Processing ", x))
+  df <- allPairs(dd, getDandr)
+  getMeanMed(df$D)
+})
+Sys.time()-t0
+
+
+#dDf <- as.data.frame(t(dAvgs))
+dDfVar <- as.data.frame(t(dAvgs))
+str(dDf)
+#hist(dDf$mean)
+hist(dDfVar$mean)
+#summary(lm(dDf$mean~1))
+summary(lm(dDfVar$mean~1))
+a <- c(0,0,0,0,0,0,1,1,1,1,1)
+b <- c(0,0,0,0,0,0,1,1,1,1,0)
+pa <- 6/12
+pb <- 5/12
+papb <- pa * pb
+sum(a + b == 2)/length(a)
