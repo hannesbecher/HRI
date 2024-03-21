@@ -1,5 +1,6 @@
 
 initialize() {
+	//defineConstant("REPID", "000"); // must be set for interactive run
 	defineConstant("NN", 1000);
 	defineConstant("ss", -(1e-3));
 	defineConstant("kk", 1);
@@ -81,47 +82,55 @@ late() {
 	if (any(freqs == 0.5))
 		sim.subpopulations.genomes.removeMutations(muts[freqs == 0.5], T);
 }
-200000 late() {
+2000 late() {
 	// get unique mutation of each type
 	ms2=unique(p1.genomes.mutationsOfType(m2));
 	ms4=unique(p1.genomes.mutationsOfType(m4));
 	
-	// generate samples of haploid genomes
-	genomes1form2=p1.sampleIndividuals(12).genome1;
-	genomes1form4=p1.sampleIndividuals(12).genome1;
+	// generate samples of haplid genomes
+	genomes1form2=p1.individuals.genome1;
+	genomes1form4=p1.individuals.genome1;
 	
 	// get mutation counts to make SFSs
-	cts2=genomes1form2.mutationCountsInGenomes(ms2);
-	cts4=genomes1form2.mutationCountsInGenomes(ms4);
+	//cts2=genomes1form2.mutationCountsInGenomes(ms2);
+	//cts4=genomes1form2.mutationCountsInGenomes(ms4);
+	
+// get mutation counts to make SFSs
+	//sfs2= sapply(c(0,1,2,3,4,5,6,7,8,9,10,11,12), "sum(cts2==applyValue);");
+	//sfs4= sapply(c(0,1,2,3,4,5,6,7,8,9,10,11,12), "sum(cts4==applyValue);");
+	
+	// print SFSs and avge allele freq.
+	//print(paste("SFSsel:",sfs2));
+	//print(paste("SFSneu:",sfs4));
+	//print(paste("FreqSel:", sum(sfs2)/L));
+	//print(paste("FreqNeu:", sum(sfs4)/L));
+	
+	/// print SFSs and avge allele freq.
+	//nn= length(sfs2)-1;
+	//print(paste("PiSel:", sum(sfs2*(0:nn)*(nn:0))*2/(nn-1)/nn/L));
+	//print(paste("PiNeu:", sum(sfs4*(0:nn)*(nn:0))*2/(nn-1)/nn/L));
 
-	// get mutation counts to make SFSs	
-	sfs2= sapply(c(0,1,2,3,4,5,6,7,8,9,10,11,12), "sum(cts2==applyValue);");
-	sfs4= sapply(c(0,1,2,3,4,5,6,7,8,9,10,11,12), "sum(cts4==applyValue);");
-	
-	// print SFSs and avge allele freq.
-	print(paste("SFSsel:",sfs2));
-	print(paste("SFSneu:",sfs4));
-	print(paste("FreqSel:", sum(sfs2)/L));
-	print(paste("FreqNeu:", sum(sfs4)/L));
-	
-	// print SFSs and avge allele freq.
-	nn= length(sfs2)-1;
-	print(paste("PiSel:", sum(sfs2*(0:nn)*(nn:0))*2/(nn-1)/nn/L));
-	print(paste("PiNeu:", sum(sfs4*(0:nn)*(nn:0))*2/(nn-1)/nn/L));
-	
-	//extract all mutations and gt their positions	
+   //extract all mutations and gt their positions	
 	m2_12=unique(genomes1form2.mutationsOfType(m2));
 	m4_12=unique(genomes1form2.mutationsOfType(m4));
 	posm2=m2_12.position;
 	posm4=m4_12.position;
-	
+
 	// make a gt array
 	gt2=(t(asInteger(sapply(posm2, "genomes1form2.containsMarkerMutation(m2, applyValue);", simplify="matrix"))));
+	gt2 = cbind(posm2, gt2);
+	
+	// same thing for neutral mutations
+	gt4=(t(asInteger(sapply(posm4, "genomes1form2.containsMarkerMutation(m4, applyValue);", simplify="matrix"))));
 	// turn into text lines
+	gt4 = cbind(posm4, gt4);
 	gt2l=apply(gt2, 0, "paste(applyValue,sep=\",\");");
-	//print(gt2l);
+	gt4l=apply(gt4, 0, "paste(applyValue,sep=\",\");");
+
+	//print(gt2l); // for debug only
 	writeFile(paste0("sim", REPID, ".gt2"), gt2l);
-	//p1.sampleIndividuals(12).genome1.output();
+	writeFile(paste0("sim", REPID, ".gt4"), gt4l);
+	//p1.sampleIndividuals(12).genome1.output(); // debug
 	
 }
 
