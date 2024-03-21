@@ -36,6 +36,10 @@ gt2sfs <- function(gts){
 #plot(gt2sfs(gt2[,1:20]))
 
 
+sampleGt <- function(gt, n){
+  gt[, sample(x = 1:ncol(gt), size = n, replace = F)]
+}
+
 # Stats functions --------------------------------------------------------------
 theta_pi = function(sfs, persite=F) {
   n = length(sfs) - 1
@@ -118,10 +122,10 @@ tajd = function(sfs) {
 deltaTheta <- function(sfs, persite=F){
   1 - theta_pi(sfs, persite=persite)/theta_w(sfs, persite=persite)
 }
-
-t(gt2[1:2,])
-table(rowSums(t(gt2[1:2,])))
-proportions(table(c(1,2) %*% gt2[1:2,]))
+# 
+# t(gt2[1:2,])
+# table(rowSums(t(gt2[1:2,])))
+# proportions(table(c(1,2) %*% gt2[1:2,]))
 
 # LD for a 2-row matrix
 ldD <- function(gtRows){
@@ -151,12 +155,12 @@ pairwiseLD <- function(gts){
   oVals[lower.tri(oVals)]
   
 }
-ld2 <- pairwiseLD(gt2)
-#image(ld2)
-hist(ld2)
+# ld2 <- pairwiseLD(gt2)
+# #image(ld2)
+# hist(ld2)
 
 
-pairwiasr2 <- function(gts){
+pairwiser2 <- function(gts){
   as.vector(cor(t(gts))[lower.tri(matrix(0,nrow(gts),nrow(gts)))])
 }
 
@@ -164,16 +168,16 @@ pairwiasr2 <- function(gts){
 #cc2 <- as.vector(cor(t(gt2))[upper.tri(matrix(0,nrow(gt2),nrow(gt2)))])
 
 
-
-plot(cc, ld2)
-hist(cc)
-hist(cc2)
-?lower.tri
-tajd(gt2sfs(gt2[,1:20]))
-theta_pi(gt2sfs(gt2[,1:20]), persite = T)
-theta_w(gt2sfs(gt2[,1:20]), persite = T)
-
-deltaTheta(gt2sfs(gt2[,1:20]))
-
-
-tajd(gt2sfs(gt2[,20:39]))
+# 
+# plot(cc, ld2)
+# hist(cc)
+# hist(cc2)
+# ?lower.tri
+# tajd(gt2sfs(gt2[,1:20]))
+# theta_pi(gt2sfs(gt2[,1:20]), persite = T)
+# theta_w(gt2sfs(gt2[,1:20]), persite = T)
+# 
+# deltaTheta(gt2sfs(gt2[,1:20]))
+# 
+# 
+# tajd(gt2sfs(gt2[,20:39]))
