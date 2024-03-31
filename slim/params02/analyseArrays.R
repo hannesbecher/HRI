@@ -145,7 +145,8 @@ ldD <- function(gtRows){
 #ldD(gt2[7:8,])
 #proportions(sapply(0:3, function(x) sum(x==t(gt2[7:8,]) %*% c(1,2))))
 
-pairwiseLD <- function(gts){
+pairwiseLD <- function(gt){
+  gts <- gt[apply(gt, 1, sd) != 0,]
   oVals <- matrix(NA, nrow(gts), nrow(gts))
   for(i in 2:nrow(gts)){
     for(j in 1:(i-1)){
@@ -160,8 +161,13 @@ pairwiseLD <- function(gts){
 # hist(ld2)
 
 
-pairwiser2 <- function(gts){
+pairwiser <- function(gt){
+  gts <- gt[apply(gt, 1, sd) != 0,]
   as.vector(cor(t(gts))[lower.tri(matrix(0,nrow(gts),nrow(gts)))])
+}
+
+meanN <- function(vec, n){
+  sum(vec)/n
 }
 
 #cc <- as.vector(cor(t(gt2))[lower.tri(matrix(0,nrow(gt2),nrow(gt2)))])
