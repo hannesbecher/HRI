@@ -12,9 +12,12 @@ read.gt <- function(x){
   gtM
 }
 # gt2 <- read.gt("~/Desktop/sim000.gt2")
+# gt2 <- read.gt("~/temp/HRI/sim0001.gt2")
 # head(gt2)
 # dimnames(gt2)
 # plot(rownames(gt2))
+# gt2[1:5, 1:5]
+# dim(gt2)
 
 # are the positions unique?
 # nrow(gt2) == length(unique(rownames(gt2)))
@@ -170,6 +173,11 @@ meanN <- function(vec, n){
   sum(vec)/n
 }
 
+getPBar <- function(gts, l){
+  sum(rowSums(gts)/ncol(gts))/l
+}
+
+#getPBar(gt2, l=2500)
 #cc <- as.vector(cor(t(gt2))[lower.tri(matrix(0,nrow(gt2),nrow(gt2)))])
 #cc2 <- as.vector(cor(t(gt2))[upper.tri(matrix(0,nrow(gt2),nrow(gt2)))])
 
@@ -187,3 +195,30 @@ meanN <- function(vec, n){
 # 
 # 
 # tajd(gt2sfs(gt2[,20:39]))
+
+
+
+# SFS expected
+l10 <- readLines("../../SFSexpected/sfs10.txt")
+l20 <- readLines("../../SFSexpected/sfs20.txt")
+l40 <- readLines("../../SFSexpected/sfs40.txt")
+l80 <- readLines("../../SFSexpected/sfs80.txt")
+
+secCol <- function(x){
+  a <- strsplit(x, ",")[[1]][[2]]
+  n <- nchar(a)
+  as.numeric(substr(a, 1, n-1))
+}
+
+
+E10 <- sapply(l10, secCol, USE.NAMES = F)
+E20 <- sapply(l20, secCol, USE.NAMES = F)
+E40 <- sapply(l40, secCol, USE.NAMES = F)
+E80 <- sapply(l80, secCol, USE.NAMES = F)
+
+sfsPK <- list(E10, E20, E40, E80)
+sfsExp <- lapply(c(10, 20, 40, 80), function(x){
+  1/((1:(x-1))*a_sub_1(x))
+})
+sapply(sfsExp, sum)
+sapply(sfsPK, sum)
