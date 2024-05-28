@@ -66,11 +66,11 @@ anaFun <- function(repID, l=2500){
   n2 <- nrow(gt2v)
   n4 <- nrow(gt4v)
   
-  LDmean2 <- meanN(pairwiseLD(gt2), l*(l-1)/2)
-  pqMean2 <- meanN(pairwisePQProd(gt2), l*(l-1)/2)
+  LDmean2 <- mean(pairwiseLD(gt2))
+  pqMean2 <- mean(pairwisePQProd(gt2))
   rmean2 <- meanN(pairwiser(gt2), l*(l-1)/2)
-  LDmean4 <- meanN(pairwiseLD(gt4), l*(l-1)/2)
-  pqMean4 <- meanN(pairwisePQProd(gt4), l*(l-1)/2)
+  LDmean4 <- mean(pairwiseLD(gt4))
+  pqMean4 <- mean(pairwisePQProd(gt4))
   rmean4 <- meanN(pairwiser(gt4), l*(l-1)/2)
   
   B <- log(pBar2/(1-pBar2)) # selected sites, scalar
@@ -128,6 +128,7 @@ mSe[42,]
 mSe[-c(36, 38),]
 
 #t(apply(b, 2, meanSE))[1:32,]
+# pBar <- 0.797
 pBar <- mSe[33,1] # check position!
 gammaHat <- log(pBar/(1-pBar))
 gamma <- 2 # depends in sim parameters!
@@ -221,31 +222,42 @@ mapply(function(x,y) cSq(x, y),
 barplot(rbind(cSfsN10, expNeut(10)), beside=T)
 barplot(rbind(cSfsN20, expNeut(20)), beside=T)
 barplot(rbind(cSfsN80, expNeut(80)), beside=T)
-# from sims
 
-sfsFun <- function(repID, l=2500){
-  gt4 <- read.gt(paste0(x = "~/temp/HRI/sim", repID, ".gt4"))
-  
-  samp4 <- lapply(c(10, 20, 40, 80), function(n) sampleGt(gt4, n))
-  sfs4 <- lapply(samp4, gt2sfs)
-  sfs4var <- lapply(sfs4, function(x) x[2:(length(x)-1)])
-  sfs4varRel <- lapply(sfs4var, function(x) x/sum(x))
-  do.call(c, sfs4varRel)
-}
-sfsFun("0002")
-ss <- mclapply(1:100, function(x) sfsFun(sprintf("%04d", x)), mc.cores = 10)
-tt <- do.call(rbind, ss)
-uu <- colMeans(tt)
-plot(uu)
-vv <- list(uu[1:9],
-           uu[10:28],
-           uu[29:67],
-           uu[68:146])
-mapply(function(o,e){
-  sum((o-e)^2/e)
-},
-vv,
-sfsExp
-)
-sfsPK
-sfsExp[[1]]
+
+
+
+
+
+
+
+
+# Stats from PK -------------------------------------------------------------------------------
+tajd(sfsPK[[4]])
+pic <- theta_pi(c(0, sfsPK[[1]], 0))
+pic
+theta_w(c(0, sfsPK[[4]], 0))
+tajd(c(0, sfsPK[[4]], 0))
+
+# pi = theta_w * a_n * pic
+# p_seg = theta_w * a_n () # i.e. depends on sample size
+
+# delta_theta_w = 1 - pi/theta_w
+# = 1 - theta_w*a_n*pic/theta_w
+# = 1 - a_n*pic
+
+# delta-theta-w = 1 – 1/(pic-c x an)
+1 - theta_pi(c(0, sfsPK[[1]], 0))*a_sub_1(10)
+1 - theta_pi(c(0, sfsPK[[2]], 0))*a_sub_1(20)
+1 - theta_pi(c(0, sfsPK[[3]], 0))*a_sub_1(40)
+1 - theta_pi(c(0, sfsPK[[4]], 0))*a_sub_1(80)
+
+
+
+
+# Stuff ---------------------------------------------------------------------------------------
+sss0 <- b[1,274:354]
+sss1 <- sss0; sss1[1] <- 0; sss1[81] <- 0
+sss2 <- sss1/sum(sss1)
+tajd(sss0)
+tajd(sss1)
+tajd(sss2)
