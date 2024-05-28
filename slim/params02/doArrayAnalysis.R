@@ -9,38 +9,52 @@ anaFun <- function(repID, l=2500){
   samp2 <- lapply(c(10, 20, 40, 80), function(n) sampleGt(gt2, n))
   samp4 <- lapply(c(10, 20, 40, 80), function(n) sampleGt(gt4, n))
   
-  sfs2 <- lapply(samp2, gt2sfs)
-  sfs4 <- lapply(samp4, gt2sfs)
+  # lists of SFSs
+  sfs2 <- lapply(samp2, function(x) gt2sfs(x,"S"))
+  sfs4 <- lapply(samp4, function(x) gt2sfs(x,"N"))
 
+  # get conditional SFS proportions (deleterious)
   sfs2condRel <- lapply(sfs2, function(x){
     v <- x[2:(length(x)-1)]
     v / sum(v)
   })
 
+  # get conditional SFS proportions (neutral sites)
   sfs4condRel <- lapply(sfs4, function(x){
     v <- x[2:(length(x)-1)]
     v / sum(v)
   })
 
+  # Brian's "chi squared" per replicate
   cSq <- mapply(function(o,e){
     sum((o-e)^2/e)
   },
   sfs4condRel,
   sfsExp
   )
+  names(cSq) <- c("cSq10", "cSq20", "cSq40", "cSq80")
   # #print(cSq) # debug
+  
   # 
   tp2 <- sapply(sfs2, theta_pi, persite=F)/l
+  names(tp2) <- c("tpS_10", "tpS_20", "tpS_40", "tpS_80")
   tw2 <- sapply(sfs2, theta_w, persite=F)/l
+  names(tw2) <- c("twS_10", "twS_20", "twS_40", "twS_80")
   ta2 <- sapply(sfs2, tajd)
+  names(ta2) <- c("taS_10", "taS_20", "taS_40", "taS_80")
   de2 <- sapply(sfs2, deltaTheta)
+  names(de2) <- c("deS_10", "deS_20", "deS_40", "deS_80")
   
   
   
   tp4 <- sapply(sfs4, theta_pi, persite=F)/l
+  names(tp4) <- c("tpN_10", "tpN_20", "tpN_40", "tpN_80")
   tw4 <- sapply(sfs4, theta_w, persite=F)/l
+  names(tw4) <- c("twN_10", "twN_20", "twN_40", "twN_80")
   ta4 <- sapply(sfs4, tajd)
+  names(ta4) <- c("taN_10", "taN_20", "taN_40", "taN_80")
   de4 <- sapply(sfs4, deltaTheta)
+  names(de4) <- c("deN_10", "deN_20", "deN_40", "deN_80")
   
   pBar2 <- 1-getPBar(gt2, l=l)
   pBar4 <- 1-getPBar(gt4, l=l)
@@ -52,39 +66,35 @@ anaFun <- function(repID, l=2500){
   n2 <- nrow(gt2v)
   n4 <- nrow(gt4v)
   
-  LDmean2 <- sum(pairwiseLD(gt2))
+  LDmean2 <- meanN(pairwiseLD(gt2), l*(l-1)/2)
+  pqMean2 <- meanN(pairwisePQProd(gt2), l*(l-1)/2)
   rmean2 <- meanN(pairwiser(gt2), l*(l-1)/2)
-  LDmean4 <- sum(pairwiseLD(gt4))
+  LDmean4 <- meanN(pairwiseLD(gt4), l*(l-1)/2)
+  pqMean4 <- meanN(pairwisePQProd(gt4), l*(l-1)/2)
   rmean4 <- meanN(pairwiser(gt4), l*(l-1)/2)
   
   B <- log(pBar2/(1-pBar2)) # selected sites, scalar
-  Bprime <- tp4/(2*1000*1e-5)# neutral sites, computed from pi, vector
+  Bprime <- unname(tp4[4])/(2*1000*1e-5)# neutral sites, computed from pi, only for SFS80
+  
   
   dataRow <- c(tp2, tw2, ta2, de2,
                tp4, tw4, ta4, de4,
-               pBar2, pBar4,
-               LDmean2, rmean2, LDmean4, rmean4,
-               n2, n4,
-               B, Bprime,
-               cSq
+               pBar2=pBar2, pBar4=pBar4,
+               LD2=LDmean2/sqrt(pqMean2), rmean2=rmean2, LD4=LDmean4/sqrt(pqMean4), rmean4=rmean4,
+               n2=n2, n4=n4,
+               B=B, Bprime=Bprime,
+               cSq,
+               do.call(c, sfs2),
+               do.call(c, sfs4)
                )
-  names(dataRow) <- c("tpS_10", "tpS_20", "tpS_40", "tpS_80",
-                      "twS_10", "twS_20", "twS_40", "twS_80",
-                      "taS_10", "taS_20", "taS_40", "taS_80",
-                      "deS_10", "deS_20", "deS_40", "deS_80",
-                      
-                      "tpN_10", "tpN_20", "tpN_40", "tpN_80",
-                      "twN_10", "twN_20", "twN_40", "twN_80",
-                      "taN_10", "taN_20", "taN_40", "taN_80",
-                      "deN_10", "deN_20", "deN_40", "deN_80",
-                      
-                      "pBar2", "pBar4",
-                      
-                      "ldSumS", "rmeanS", "ldSumN", "rmeanN",
-                      "n2", "n4",
-                      "B", "bPrime10", "bPrime20", "bPrime40", "bPrime80",
-                      "cSq10", "cSq20", "cSq40", "cSq80"
-                      )
+  # names(dataRow) <- c(
+  #                    
+  #                     
+  #                     "ldSumS", "rmeanS", "ldSumN", "rmeanN",
+  #                     "n2", "n4",
+  #                     "B", "bPrime10", "bPrime20", "bPrime40", "bPrime80",
+  #                     "cSq10", "cSq20", "cSq40", "cSq80"
+  #                     )
   dataRow
 }
 #r0 <- anaFun("0001")
@@ -96,34 +106,68 @@ library(parallel)
 t0 <- Sys.time()
 a <- mclapply(1:100, function(x) anaFun(sprintf("%04d", x)), mc.cores = 10)
 Sys.time() - t0
-b <- as.data.frame(do.call(rbind, a))
+# about 4 mins on Gemmaling
 
+
+# Per-run rows --------------------------------------------------------------------------------
+b <- as.data.frame(do.call(rbind, a))
+b
 
 
 meanSE <- function(vec){
   m <- mean(vec)
   se <- sd(vec) / sqrt(length(vec))
-  c(mean=m, lo = m + qnorm(0.025)*se, hi = m + qnorm(0.975)*se)
+  c(mean=m, CIlo = m + qnorm(0.025)*se, CIhi = m + qnorm(0.975)*se)
 }
 
 meanSE(b[,1])
-mSe <- t(apply(b, 2, meanSE))
+names(b)
+mSe <- t(apply(b[,1:46], 2, meanSE))
 
+mSe[42,]
 mSe[-c(36, 38),]
 
 #t(apply(b, 2, meanSE))[1:32,]
-log(7.092162e-01/(1-7.092162e-01))/2
+pBar <- mSe[33,1] # check position!
+gammaHat <- log(pBar/(1-pBar))
+gamma <- 2 # depends in sim parameters!
+gammaHat/gamma
 # getwd()
-# write.table(b,
-#             "allNums.tsv",
-#             row.names = F,
-#             quote = F)
-# write.table(mSe,
-#             "mSe.tsv",
-#             col.names = NA,
-#             row.names = T,
-#             quote = F)
+write.table(b,
+            "allNums240528.tsv",
+            row.names = F,
+            quote = F)
+write.table(mSe,
+            "mSe240528.tsv",
+            col.names = NA,
+            row.names = T,
+            quote = F)
 
+
+# Avg SFS -------------------------------------------------------------------------------------
+
+sfsPart <- b[,47:354]
+
+# get averaged conditional SFS
+propCondSfs <- function(x, fro, to){
+  ll <- to-fro+1
+  y <- x[,fro:to]
+  z <- colSums(y)
+  z[1] <- 0
+  z[ll] <- 0
+  sfs <- z/sum(z)
+  sfs[2:(ll-1)]
+}
+head(sfsPart)
+cSfsS10 <- propCondSfs(sfsPart, 1,11)
+cSfsS20 <- propCondSfs(sfsPart, 12,32)
+cSfsS40 <- propCondSfs(sfsPart, 33,73)
+cSfsS80 <- propCondSfs(sfsPart, 74,154)
+
+cSfsN10 <- propCondSfs(sfsPart, 155,165)
+cSfsN20 <- propCondSfs(sfsPart, 166,186)
+cSfsN40 <- propCondSfs(sfsPart, 187,227)
+cSfsN80 <- propCondSfs(sfsPart, 228,308)
 
 # LD things ---------------------------------------------------------------
 
@@ -156,12 +200,27 @@ expNeut <- function(n){
 cSq <- function(e, o){
   sum((e-o)^2/e)
 }
+# same as computed in analyseArrays.R
 cSq(expNeut(10), sfsExp[[1]])
 cSq(expNeut(20), sfsExp[[2]])
 cSq(expNeut(40), sfsExp[[3]])
 cSq(expNeut(80), sfsExp[[4]])
 
+cSq(expNeut(80), sfsPK[[4]])
 
+mapply(function(x,y) cSq(x, y),
+       sfsPK, 
+       list(expNeut(10), expNeut(20), expNeut(40), expNeut(80))
+)
+# simuations (neutral sites)
+mapply(function(x,y) cSq(x, y),
+       list(cSfsN10,cSfsN20,cSfsN40,cSfsN80), 
+       list(expNeut(10), expNeut(20), expNeut(40), expNeut(80))
+)
+
+barplot(rbind(cSfsN10, expNeut(10)), beside=T)
+barplot(rbind(cSfsN20, expNeut(20)), beside=T)
+barplot(rbind(cSfsN80, expNeut(80)), beside=T)
 # from sims
 
 sfsFun <- function(repID, l=2500){

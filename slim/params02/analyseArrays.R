@@ -1,5 +1,7 @@
 # import gt files
 
+# this is a script of utility functions, to be used bu doArrayAnalysis.R
+
 # assumes 1st col is position, all other are haploid GTs (0/1)
 read.gt <- function(x){
   a <-read.table(x, sep=",")
@@ -24,22 +26,23 @@ read.gt <- function(x){
 
 # gt2[1:10, 1:10]
 
-gt2sfs <- function(gts){
-  # gts is assumed to be 0/1 with the 1st col containing positions
+gt2sfs <- function(gts,pref){
+  # gts is assumed to be a 2D 0/1 array with the row names containing positions
   n <- ncol(gts)
   cts <- rowSums(gts)
   sfs <- sapply(0:n, function(k){
     sum(cts==k)
   })
-  names(sfs) <- 0:n
+  names(sfs) <- paste0(pref,n,"_",0:n)
   sfs
 }
 #gt2sfs(gt2)
 #gt2sfs(gt2[,1:20])
 #plot(gt2sfs(gt2[,1:20]))
 
-
+# GTs are sampled from haplotype matrix (by sampling columns)
 sampleGt <- function(gt, n){
+  # returns a 2D array
   gt[, sample(x = 1:ncol(gt), size = n, replace = F)]
 }
 
@@ -132,15 +135,52 @@ deltaTheta <- function(sfs, persite=F){
 
 # LD for a 2-row matrix
 ldD <- function(gtRows){
-  l <- ncol(gtRows) # number of haploid inds
-  xx <- proportions(sapply(0:3, function(x) sum(x == c(1,2) %*% gtRows)))
-  # allele frequencies at the loci
-  pA <- sum(gtRows[1,])/l
-  pB <- sum(gtRows[2,])/l
+  # takes a 2-row haplotype array
   
-  # pAB - pA*pB
-  xx[4] - pA*pB
+  l <- ncol(gtRows) # number of haploid inds
+  
+  # haplotype frequencies
+  xx <- proportions(sapply(0:3, function(x) sum(x == c(1,2) %*% gtRows)))
+  
+  
+  # allele frequencies at the loci
+  qA <- sum(gtRows[1,])/l
+  qB <- sum(gtRows[2,])/l
+  
+  
+  xx[4] - qA*qB
 }
+
+pqProd <- function(gtRows){
+  # takes a 2-row haplotype array
+  
+  l <- ncol(gtRows) # number of haploid inds
+
+  # allele frequencies at the loci
+  qA <- sum(gtRows[1,])/l
+  qB <- sum(gtRows[2,])/l
+
+  qA*qB*(1-qA)*(1-qB)
+}
+
+ldDOverSqrtProd <- function(gtRows){
+  # takes a 2-row haplotype array
+  
+  l <- ncol(gtRows) # number of haploid inds
+  
+  # haplotype frequencies
+  xx <- proportions(sapply(0:3, function(x) sum(x == c(1,2) %*% gtRows)))
+  
+  
+  # allele frequencies at the loci
+  qA <- sum(gtRows[1,])/l
+  qB <- sum(gtRows[2,])/l
+  
+  
+  (xx[4] - qA*qB)/sqrt(qA*qB*(1-qA)*(1-qB))
+}
+
+
 
 
 #ldD(gt2[1:2,])
@@ -149,16 +189,33 @@ ldD <- function(gtRows){
 #proportions(sapply(0:3, function(x) sum(x==t(gt2[7:8,]) %*% c(1,2))))
 
 pairwiseLD <- function(gt){
+  #takes haplotype matrix, drops invariant sites
   gts <- gt[apply(gt, 1, sd) != 0,]
   oVals <- matrix(NA, nrow(gts), nrow(gts))
   for(i in 2:nrow(gts)){
     for(j in 1:(i-1)){
+      # need to decide which function to call here!
       oVals[i,j] <- ldD(gts[c(i,j),])
     }
   }
   oVals[lower.tri(oVals)]
   
 }
+
+pairwisePQProd <- function(gt){
+  #takes haplotype matrix, drops invariant sites
+  gts <- gt[apply(gt, 1, sd) != 0,]
+  oVals <- matrix(NA, nrow(gts), nrow(gts))
+  for(i in 2:nrow(gts)){
+    for(j in 1:(i-1)){
+      # need to decide which function to call here!
+      oVals[i,j] <- pqProd(gts[c(i,j),])
+    }
+  }
+  oVals[lower.tri(oVals)]
+  
+}
+
 # ld2 <- pairwiseLD(gt2)
 # #image(ld2)
 # hist(ld2)
@@ -198,11 +255,11 @@ getPBar <- function(gts, l){
 
 
 
-# SFS expected
-l10 <- readLines("../../SFSexpected/sfs10.txt")
-l20 <- readLines("../../SFSexpected/sfs20.txt")
-l40 <- readLines("../../SFSexpected/sfs40.txt")
-l80 <- readLines("../../SFSexpected/sfs80.txt")
+# SFS expected (PK)
+l10 <- readLines("../../SFSexpectedPK/sfs10.txt")
+l20 <- readLines("../../SFSexpectedPK/sfs20.txt")
+l40 <- readLines("../../SFSexpectedPK/sfs40.txt")
+l80 <- readLines("../../SFSexpectedPK/sfs80.txt")
 
 secCol <- function(x){
   a <- strsplit(x, ",")[[1]][[2]]
@@ -216,9 +273,13 @@ E20 <- sapply(l20, secCol, USE.NAMES = F)
 E40 <- sapply(l40, secCol, USE.NAMES = F)
 E80 <- sapply(l80, secCol, USE.NAMES = F)
 
+# P&K expectations as list
 sfsPK <- list(E10, E20, E40, E80)
+
+# neutral expectation (no HRI) as list
 sfsExp <- lapply(c(10, 20, 40, 80), function(x){
   1/((1:(x-1))*a_sub_1(x))
 })
-sapply(sfsExp, sum)
-sapply(sfsPK, sum)
+# sanity check, do they add to 1?
+#sapply(sfsExp, sum)
+#sapply(sfsPK, sum)
