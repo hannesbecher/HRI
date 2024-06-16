@@ -128,6 +128,14 @@ tajd = function(sfs) {
 deltaTheta <- function(sfs, persite=F){
   1 - theta_pi(sfs, persite=persite)/theta_w(sfs, persite=persite)
 }
+deltaThetaMax <- function(n){
+  1 - a_sub_1(n)/n
+}
+
+deltaThetaPrime <- function(sfs, persite=T){
+  deltaTheta(sfs, persite = persite) / deltaThetaMax(length(sfs)-1)
+}
+
 # 
 # t(gt2[1:2,])
 # table(rowSums(t(gt2[1:2,])))
@@ -256,25 +264,25 @@ getPBar <- function(gts, l){
 
 
 # SFS expected (PK)
-l10 <- readLines("../../SFSexpectedPK/sfs10.txt")
-l20 <- readLines("../../SFSexpectedPK/sfs20.txt")
-l40 <- readLines("../../SFSexpectedPK/sfs40.txt")
-l80 <- readLines("../../SFSexpectedPK/sfs80.txt")
-
-secCol <- function(x){
-  a <- strsplit(x, ",")[[1]][[2]]
-  n <- nchar(a)
-  as.numeric(substr(a, 1, n-1))
-}
-
-
-E10 <- sapply(l10, secCol, USE.NAMES = F)
-E20 <- sapply(l20, secCol, USE.NAMES = F)
-E40 <- sapply(l40, secCol, USE.NAMES = F)
-E80 <- sapply(l80, secCol, USE.NAMES = F)
-
-# P&K expectations as list
-sfsPK <- list(E10, E20, E40, E80)
+# l10 <- readLines("../../SFSexpectedPK/sfs10.txt")
+# l20 <- readLines("../../SFSexpectedPK/sfs20.txt")
+# l40 <- readLines("../../SFSexpectedPK/sfs40.txt")
+# l80 <- readLines("../../SFSexpectedPK/sfs80.txt")
+# 
+# secCol <- function(x){
+#   a <- strsplit(x, ",")[[1]][[2]]
+#   n <- nchar(a)
+#   as.numeric(substr(a, 1, n-1))
+# }
+# 
+# 
+# E10 <- sapply(l10, secCol, USE.NAMES = F)
+# E20 <- sapply(l20, secCol, USE.NAMES = F)
+# E40 <- sapply(l40, secCol, USE.NAMES = F)
+# E80 <- sapply(l80, secCol, USE.NAMES = F)
+# 
+# # P&K expectations as list
+# sfsPK <- list(E10, E20, E40, E80)
 
 # neutral expectation (no HRI) as list
 sfsExp <- lapply(c(10, 20, 40, 80), function(x){
