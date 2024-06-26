@@ -9,8 +9,9 @@ anaFun <- function(repID, simID){
   print(parsLines)
   eval(str2expression(parsLines))  
   
-  gt2 <- read.gt(paste0(x = paste0("~/temp/HRI/v", simID, "/sim"), repID, ".gt2"))
-  gt4 <- read.gt(paste0(x = paste0("~/temp/HRI/v", simID, "/sim"), repID, ".gt4"))
+  
+  gt2 <- read.gt(paste0("params", simID, "/data/sim", repID, ".gt2"))
+  gt4 <- read.gt(paste0("params", simID, "/data/sim", repID, ".gt4"))
   
   
   samp2 <- lapply(c(10, 20, 40, 80), function(n) sampleGt(gt2, n))
@@ -25,8 +26,14 @@ anaFun <- function(repID, simID){
     v <- x[2:(length(x)-1)]
     v / sum(v)
   })
-
-
+  
+  # get individuals' fitnesesses
+  indW <- apply(gt2 * ss + 1, 2, prod) # individuals are in columns
+  indWsum <- apply(gt2 * ss + 1, 2, sum) # individuals are in columns
+  varW <- var(indW)
+  varWsum<- var(indWsum)
+  
+  
   # 
   tp2 <- sapply(sfs2, theta_pi, persite=F)/LL
   names(tp2) <- c("tpS_10", "tpS_20", "tpS_40", "tpS_80")
@@ -62,6 +69,11 @@ anaFun <- function(repID, simID){
   n2 <- nrow(gt2v)
   n4 <- nrow(gt4v)
   
+  
+  sitePis2 <- getSitePis(gt2v)
+  varWexp <- sum(sitePis2)/2*ss^2
+  
+  
   pwLD2 <- pairwiseLD(gt2)
   LDmean2 <- mean(pwLD2)
   pqMean2 <- mean(pairwisePQProd(gt2))
@@ -88,21 +100,26 @@ anaFun <- function(repID, simID){
                LD4=LDmean4/sqrt(pqMean4), minus2LdN=minus2LdN,
                n2=n2, n4=n4,
                B=B, Bprime=Bprime,
+               varW=varW, varWexp=varWexp, varWsum=varWsum,
                do.call(c, sfs2),
                do.call(c, sfs4)
                )
   
   return(dataRow)
 }
-r0 <- anaFun("0001", "02")
-#r0
+
+
+
+
+#r0 <- anaFun("0002", "02")
+#r0[1:60]
 
 
 
 library(parallel)
-t0 <- Sys.time()
-a <- mclapply(1:10, function(x) anaFun(sprintf("%04d", x), "02"), mc.cores = 10)
-Sys.time() - t0
+# t0 <- Sys.time()
+# a <- mclapply(1:10, function(x) anaFun(sprintf("%04d", x), "02"), mc.cores = 10)
+# Sys.time() - t0
 # about 4 mins on Gemmaling
 
 
@@ -111,8 +128,8 @@ Sys.time() - t0
 
 
 # Per-run rows --------------------------------------------------------------------------------
-b <- as.data.frame(do.call(rbind, a))
-b
+# b <- as.data.frame(do.call(rbind, a))
+# b
 
 
 
@@ -255,20 +272,22 @@ curve(pchisq(x,2),-1,10)
 
 
 # Wrap it all up ####
-# analyses of reps
-# get CIs
-# extract avg SFS (N/S)
-# 
+# per parameter set
+## analyses of reps
+### get CIs on these
+### extract avg SFS (N/S)
+## P&K SFSs
+## table Delta theta_w prime for P&K (no CI) and from sim with CI (neutral sites)
+## table col LD for qp and -2, both with CI
+## table col pBar, B, and B' from sim and analytic/P&K
+
+
 library(parallel)
-t0 <- Sys.time()
-
-Sys.time() - t0
-
 simID <- c("02")
 
 analyseAll <- function(simID, maxRep=10, nCores=10){
   # TODO autodetermine number of runs
-  a <- mclapply(1:maxRep, function(x) anaFun(sprintf("%04d", x), "02"), mc.cores = 10)
+  a <- mclapply(1:maxRep, function(x) anaFun(sprintf("%04d", x), simID), mc.cores = 10)
   b <- as.data.frame(do.call(rbind, a))
   statCI <- t(apply(b, 2, meanSE))
   
@@ -286,7 +305,7 @@ analyseAll <- function(simID, maxRep=10, nCores=10){
     sfs <- z/sum(z)
     sfs[2:(ll-1)]
   }
-  head(sfsPart)
+  #head(sfsPart)
   cSfsS10 <- propCondSfs(sfsPart, 1,11)
   cSfsS20 <- propCondSfs(sfsPart, 12,32)
   cSfsS40 <- propCondSfs(sfsPart, 33,73)
@@ -297,13 +316,11 @@ analyseAll <- function(simID, maxRep=10, nCores=10){
   cSfsN40 <- propCondSfs(sfsPart, 187,227)
   cSfsN80 <- propCondSfs(sfsPart, 228,308)
   
-  
+  # Get P&K SFS data
   l10 <- readLines(paste0("params", simID, "/v", simID, "sfs10.txt"))
   l20 <- readLines(paste0("params", simID, "/v", simID, "sfs20.txt"))
   l40 <- readLines(paste0("params", simID, "/v", simID, "sfs40.txt"))
   l80 <- readLines(paste0("params", simID, "/v", simID, "sfs80.txt"))
-  
-  
   
   E10 <- sapply(l10, secCol, USE.NAMES = F)
   E20 <- sapply(l20, secCol, USE.NAMES = F)
@@ -319,26 +336,138 @@ analyseAll <- function(simID, maxRep=10, nCores=10){
   pic
   theta_w_from_avg <- theta_w(sfsPK[[4]])
   
-
-  
   dtwp10PK <- deltaThetaPrime(sfsPK[[1]])
   dtwp20PK <- deltaThetaPrime(sfsPK[[2]])
   dtwp40PK <- deltaThetaPrime(sfsPK[[3]])
   dtwp80PK <- deltaThetaPrime(sfsPK[[4]])
   
   list(mSE = statCI,
-       
+       ldNums = statCI[rownames(statCI) %in% c("LD2", "minus2LdS", "LD4", "minus2LdN"),],
+       pbbNums = statCI[rownames(statCI) %in% c("pBar2", "B", "Bprime"),],
+       dtwp = statCI[rownames(statCI) %in% c("dtwpN_10", "dtwpN_20", "dtwpN_40", "dtwpN_80"),],
+       varNums = statCI[rownames(statCI) %in% c("varW", "varWexp", "varWsum"),],
+       sfsNums = statCI[startsWith(rownames(statCI), "sfs"),],
+       sfsPK=sfsPK,
        dtwp10PK=dtwp10PK,
        dtwp20PK=dtwp20PK,
        dtwp40PK=dtwp40PK,
        dtwp80PK=dtwp80PK,
-       
-       sfsPart=sfsPart # check if this works correctly and whether required at all. SFS is mean SE object as well.
+       cSfsN = list(c(0, cSfsN10, 0), c(0, cSfsN20, 0), c(0, cSfsN40, 0), c(0, cSfsN80, 0)),
+       cSfsS = list(c(0, cSfsS10, 0), c(0, cSfsS20, 0), c(0, cSfsS40, 0), c(0, cSfsS80, 0))
+       #sfsPart=sfsPart # check if this works correctly and whether required at all. SFS is mean SE object as well.
        )
   
 }
-aaa <- analyseAll("02", maxRep = 100)
+a02 <- analyseAll("02", maxRep = 100, nCores = 10) # there are only 100 reps
+a03 <- analyseAll("03", maxRep = 100, nCores = 10) # there are 200 replicates
+a04 <- analyseAll("04", maxRep = 100, nCores = 10) # L=10k, takes long!, there are 200 replicates
+rownames(aaa$mSE)
+#rownames(bbb)
+
+# make code to combine mean and CIs into one col!
+array2tableCol <- function(arr, sigfig=3){
+  rn <- rownames(arr)
+  vals <- apply(signif(arr, sigfig), 1, function(x) paste0(x[1], " (CI: ", x[2], ", ", x[3], ")"))
+  #  names(vals) <- rn
+  vals
+}
+
+
+array2tableCol(aaa$ldNums, 4)
+array2tableCol(aaa$pbbNums, 4)
+array2tableCol(aaa$dtwp, 4)
+
 
 
 propCondSfs(aaa$mSE[57:67,1])
 propCondSfs(aaa$mSE, 57, 67)
+
+
+
+# Combine param sets --------------------------------------------------------------------------
+a02$mSE[,1]
+a02$sfsNums
+a02$sfsPK
+
+#ps <- list(a02, a03) # 10 each for debug
+ps <- list(a02, a03, a04)
+#saveRDS(ps, "ps.rds")
+#ps <- readRDS("ps.rds")
+
+
+makeTable <- function(parSets, itemName){
+  n <- length(parSets)
+  nums <- lapply(parSets, function(x) x[[itemName]])
+  #print(nums)
+  tab <- sapply(nums, array2tableCol, sigfig=4)
+  colnames(tab) <- paste("params", 2:(ncol(tab)+1), sep = "")
+  tab
+}
+#apply(signif(sapply(ps, function(x) c(x$dtwp10PK, x$dtwp20PK, x$dtwp40PK, x$dtwp80PK)), 4), 2, as.character)
+makeDtwpTable <- function(parSets){
+  fromSim <- makeTable(parSets, "dtwp")
+  fromPK <- apply(signif(sapply(parSets, function(x) c(x$dtwp10PK, x$dtwp20PK, x$dtwp40PK, x$dtwp80PK)), 4), 2, as.character)
+  colnames(fromPK) <- paste("params", 2:(length(parSets)+1), "PK", sep = "")
+  #print(fromSim)
+  #print(fromPK)
+  cols <- lapply(1:length(parSets), function(x) cbind(fromSim[,x], fromPK[,x]))
+  tab <- do.call(cbind,  cols)
+  colnames(tab) <- as.vector(rbind(colnames(fromSim), colnames(fromPK)))
+  return(tab)
+}
+
+
+getSfsN <- function(parSets){
+  msfs <- lapply(parSets, function(x) do.call(c, x$cSfsN))
+  do.call(cbind, msfs)
+}
+
+getPkSfs <- function(parSets){
+  sfs <- lapply(parSets, function(x) do.call(c, x$sfsPK))
+  do.call(cbind, sfs)
+}
+
+makeSfsTab <- function(parSets){
+  sfsN <- getSfsN(ps)
+  pkSfsN <- getPkSfs(ps)
+  cols <- lapply(1:length(parSets), function(x) cbind(sfsN[,x], pkSfsN[,x]))
+  tab <- do.call(cbind,  cols)
+  colnames(tab) <- paste0(c("sfsSim", "sfsPK"), rep(2:(length(parSets)+1), each=2))
+  signif(tab, 4)
+}
+
+
+pN <- t(makeTable(ps, "pbbNums"))
+lN <- t(makeTable(ps, "ldNums"))
+vN <- t(makeTable(ps, "varNums"))
+sN <- makeSfsTab(ps)
+dN <- t(makeDtwpTable(ps))
+gN <- makeTable(ps, "mSE")[1:46,]
+
+
+
+
+library(openxlsx2)
+
+wb <- wb_workbook(creator = "HB") %>%
+  wb_add_worksheet(sheet = "general") %>%
+  wb_add_data(x = data.frame(gN), row_names = TRUE) %>%
+  wb_add_worksheet(sheet = "fitness variance") %>%
+  wb_add_data(x = data.frame(vN), row_names = TRUE) %>%
+  wb_add_worksheet(sheet = "LD") %>%
+  wb_add_data(x = data.frame(lN), row_names = TRUE) %>%
+  wb_add_worksheet(sheet = "B") %>%
+  wb_add_data(x = data.frame(pN), row_names = TRUE) %>%
+  wb_add_worksheet(sheet = "Dtwp") %>%
+  wb_add_data(x = data.frame(dN), row_names = TRUE) %>%
+  wb_add_worksheet(sheet = "SFS (neutral)") %>%
+  wb_add_data(x = data.frame(sN), row_names = TRUE)
+
+
+for(i in wb_get_sheet_names(wb)){
+  wb_set_col_widths(wb, sheet = i, cols=1:100, widths="auto")  
+}
+
+#wb_save(wb, "Simulations-09.xlsx")
+
+

@@ -214,7 +214,10 @@ getPBar <- function(gts, l){
   sum(rowSums(gts)/ncol(gts))/l
 }
 
-
+getSitePis <- function(gts){
+  p <- rowSums(gts)/ncol(gts)
+  return(p^2 + (1-p)^2)
+}
 
 secCol <- function(x){
   a <- strsplit(x, ",")[[1]][[2]]
@@ -234,3 +237,11 @@ meanSE <- function(vec){
   c(mean=m, CIlo = m + qnorm(0.025)*se, CIhi = m + qnorm(0.975)*se)
 }
 
+a_sub_1 = function(n) {
+  sum(1/(1:(n-1)))
+}
+sum(1/(1:9*a_sub_1(10)))
+
+expNeut <- function(n){
+  1/(1:(n-1)*a_sub_1(n))
+}
