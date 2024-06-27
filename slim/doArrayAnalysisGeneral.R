@@ -283,7 +283,7 @@ curve(pchisq(x,2),-1,10)
 
 
 library(parallel)
-simID <- c("02")
+#simID <- c("02")
 
 analyseAll <- function(simID, maxRep=10, nCores=10){
   # TODO autodetermine number of runs
@@ -358,9 +358,10 @@ analyseAll <- function(simID, maxRep=10, nCores=10){
        )
   
 }
-a02 <- analyseAll("02", maxRep = 100, nCores = 10) # there are only 100 reps
-a03 <- analyseAll("03", maxRep = 100, nCores = 10) # there are 200 replicates
-a04 <- analyseAll("04", maxRep = 100, nCores = 10) # L=10k, takes long!, there are 200 replicates
+a02 <- analyseAll("02", maxRep = 10, nCores = 10) # there are only 100 reps
+a03 <- analyseAll("03", maxRep = 10, nCores = 10) # there are 200 replicates
+a04 <- analyseAll("04", maxRep = 10, nCores = 10) # L=10k, takes long!, there are 200 replicates
+a05 <- analyseAll("05", maxRep = 10, nCores = 10) # L=10k, takes long!, there are 200 replicates
 rownames(aaa$mSE)
 #rownames(bbb)
 
