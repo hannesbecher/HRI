@@ -96,8 +96,8 @@ anaFun <- function(repID, simID){
                tp2, tw2, ta2, de2,dtwp2,
                tp4, tw4, ta4, de4,dtwp4,
                pBar2=pBar2, pBar4=pBar4,
-               LD2=LDmean2/sqrt(pqMean2), minus2LdS=minus2LdS,
-               LD4=LDmean4/sqrt(pqMean4), minus2LdN=minus2LdN,
+               LDmean2=LDmean2, LDmean2ss=LDmean2 * abs(ss), LD2=LDmean2/sqrt(pqMean2), minus2LdS=minus2LdS,
+               LDmean4=LDmean4, LDmean4ss=LDmean4 * abs(ss), LD4=LDmean4/sqrt(pqMean4), minus2LdN=minus2LdN,
                n2=n2, n4=n4,
                B=B, Bprime=Bprime,
                varW=varW, varWexp=varWexp, varWsum=varWsum,
@@ -342,7 +342,7 @@ analyseAll <- function(simID, maxRep=10, nCores=10){
   dtwp80PK <- deltaThetaPrime(sfsPK[[4]])
   
   list(mSE = statCI,
-       ldNums = statCI[rownames(statCI) %in% c("LD2", "minus2LdS", "LD4", "minus2LdN"),],
+       ldNums = statCI[rownames(statCI) %in% c("LD2", "minus2LdS", "LDmean2", "LDmean2ss", "LD4", "minus2LdN" , "LDmean4", "LDmean4ss"),],
        pbbNums = statCI[rownames(statCI) %in% c("pBar2", "B", "Bprime"),],
        dtwp = statCI[rownames(statCI) %in% c("dtwpN_10", "dtwpN_20", "dtwpN_40", "dtwpN_80"),],
        varNums = statCI[rownames(statCI) %in% c("varW", "varWexp", "varWsum"),],
@@ -358,10 +358,11 @@ analyseAll <- function(simID, maxRep=10, nCores=10){
        )
   
 }
-a02 <- analyseAll("02", maxRep = 10, nCores = 10) # there are only 100 reps
-a03 <- analyseAll("03", maxRep = 10, nCores = 10) # there are 200 replicates
-a04 <- analyseAll("04", maxRep = 10, nCores = 10) # L=10k, takes long!, there are 200 replicates
-a05 <- analyseAll("05", maxRep = 10, nCores = 10) # L=10k, takes long!, there are 200 replicates
+a02 <- analyseAll("02", maxRep = 200, nCores = 10) # there are only 100 reps
+a02$ldNums
+a03 <- analyseAll("03", maxRep = 200, nCores = 10) # there are 200 replicates
+a04 <- analyseAll("04", maxRep = 200, nCores = 10) # L=10k, takes long!, there are 200 replicates
+a05 <- analyseAll("05", maxRep = 200, nCores = 10) # L=10k, takes long!, there are 200 replicates
 rownames(aaa$mSE)
 #rownames(bbb)
 
@@ -391,7 +392,7 @@ a02$sfsNums
 a02$sfsPK
 
 #ps <- list(a02, a03) # 10 each for debug
-ps <- list(a02, a03, a04)
+ps <- list(a02, a03, a04, a05)
 #saveRDS(ps, "ps.rds")
 #ps <- readRDS("ps.rds")
 
@@ -443,7 +444,7 @@ lN <- t(makeTable(ps, "ldNums"))
 vN <- t(makeTable(ps, "varNums"))
 sN <- makeSfsTab(ps)
 dN <- t(makeDtwpTable(ps))
-gN <- makeTable(ps, "mSE")[1:46,]
+gN <- makeTable(ps, "mSE")[1:46,] # adjust range
 
 
 
@@ -469,6 +470,6 @@ for(i in wb_get_sheet_names(wb)){
   wb_set_col_widths(wb, sheet = i, cols=1:100, widths="auto")  
 }
 
-#wb_save(wb, "Simulations-09.xlsx")
+#wb_save(wb, "Simulations-10.xlsx")
 
 

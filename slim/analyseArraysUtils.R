@@ -216,7 +216,7 @@ getPBar <- function(gts, l){
 
 getSitePis <- function(gts){
   p <- rowSums(gts)/ncol(gts)
-  return(p^2 + (1-p)^2)
+  return(1 - (p^2 + (1-p)^2))
 }
 
 secCol <- function(x){
