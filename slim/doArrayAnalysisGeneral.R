@@ -1,6 +1,8 @@
+# Use this script to compute stats for sets of simulations
+
 setwd("~/git_repos/HRI/slim/")
 source("analyseArraysUtils.R")
-set.seed(123345)
+#set.seed(123345)
 #anaFun <- function(repID, l=2500){
 anaFun <- function(repID, simID){
   if(missing(simID)) stop("Need to supply simulation ID.")
@@ -9,44 +11,53 @@ anaFun <- function(repID, simID){
   print(parsLines)
   eval(str2expression(parsLines))  
   
-  
+  # genotype matrices (whole population) with position as "rownames"
   gt2 <- read.gt(paste0("params", simID, "/data/sim", repID, ".gt2"))
   gt4 <- read.gt(paste0("params", simID, "/data/sim", repID, ".gt4"))
   
   
+  # lists of samples of 10/20/40/80 haploids
   samp2 <- lapply(c(10, 20, 40, 80), function(n) sampleGt(gt2, n))
   samp4 <- lapply(c(10, 20, 40, 80), function(n) sampleGt(gt4, n))
   
-  # lists of SFSs
+  # lists of SFSs corresponding to the samples taken above
   sfs2 <- lapply(samp2, function(x) gt2sfs(x,"sfsS"))
   sfs4 <- lapply(samp4, function(x) gt2sfs(x,"sfsN"))
 
-  # get conditional SFS proportions (deleterious)
+  # get conditional SFS proportions (deleterious sites)
   sfs2condRel <- lapply(sfs2, function(x){
     v <- x[2:(length(x)-1)]
     v / sum(v)
   })
   
   # get individuals' fitnesesses
-  indW <- apply(gt2 * ss + 1, 2, prod) # individuals are in columns
-  indWsum <- apply(gt2 * ss + 1, 2, sum) # individuals are in columns
+  indW <- exp(colSums(log(gt2 * ss + 1))) # individuals are in columns
+  indWsum <- colSums(gt2 * ss) + 1 # individuals are in columns
   varW <- var(indW)
   varWsum<- var(indWsum)
   
   
-  # 
+  # pi
   tp2 <- sapply(sfs2, theta_pi, persite=F)/LL
   names(tp2) <- c("tpS_10", "tpS_20", "tpS_40", "tpS_80")
+  
+  # Watterson's th
   tw2 <- sapply(sfs2, theta_w, persite=F)/LL
   names(tw2) <- c("twS_10", "twS_20", "twS_40", "twS_80")
+  
+  # TajD
   ta2 <- sapply(sfs2, tajd)
   names(ta2) <- c("taS_10", "taS_20", "taS_40", "taS_80")
+  
+  # Delta theta
   de2 <- sapply(sfs2, deltaTheta)
   names(de2) <- c("deS_10", "deS_20", "deS_40", "deS_80")
   
+  # Delta theta prime (= del the / del the max)
   dtwp2 <- sapply(sfs2, deltaThetaPrime)
   names(dtwp2) <- c("dtwpS_10", "dtwpS_20", "dtwpS_40", "dtwpS_80")
   
+  # same for neutral sites
   tp4 <- sapply(sfs4, theta_pi, persite=F)/LL
   names(tp4) <- c("tpN_10", "tpN_20", "tpN_40", "tpN_80")
   tw4 <- sapply(sfs4, theta_w, persite=F)/LL
@@ -58,30 +69,39 @@ anaFun <- function(repID, simID){
   
   dtwp4 <- sapply(sfs4, deltaThetaPrime)
   names(dtwp4) <- c("dtwpN_10", "dtwpN_20", "dtwpN_40", "dtwpN_80")
+  dtwm4 <- sapply(sfs4, function(x) deltaThetaMax(length(x)-1))
+  names(dtwm4) <- c("dtwmN_10", "dtwmN_20", "dtwmN_40", "dtwmN_80")
   
+  # avg allele frequencies (deleterious site val is used to estimate B)
+  # the Li-Bulmer eqtn give p bar for the beneficial allele, so need to to 1-freq here:
   pBar2 <- 1-getPBar(gt2, l=LL)
   pBar4 <- 1-getPBar(gt4, l=LL)
   
-  pBar2No0 <- 1-sum(sfs2[[4]])/LL # analog to older SLiM version
+  # what's this, again? legacy?
+  #pBar2No0 <- 1-sum(sfs2[[4]])/LL # analog to older SLiM version
   
+  # variant position only
   gt2v <- gt2[apply(gt2, 1, sd) !=0,]
   gt4v <- gt4[apply(gt4, 1, sd) !=0,]
+  # How many variant sites in each class? (del and neutral)
   n2 <- nrow(gt2v)
   n4 <- nrow(gt4v)
   
-  
+  # pi vals for variant deleterious sites
   sitePis2 <- getSitePis(gt2v)
   varWexp <- sum(sitePis2)/2*ss^2
   
   
-  pwLD2 <- pairwiseLD(gt2)
+  pwLD2 <- pairwiseLD(gt2) # a vector (lower triangle of pairwise comparisons)
   LDmean2 <- mean(pwLD2)
+  LDsumSel <- sum(pwLD2)
   pqMean2 <- mean(pairwisePQProd(gt2))
   minus2LdS <- -2*LDmean2*n2
   
   
   pwLD4 <- pairwiseLD(gt4)
-  LDmean4 <- mean(pwLD4)
+  LDmean4 <- mean(pwLD4)  # adjust to all sites! bit only variant ones needed for correlation based
+  LDsumNeu <- sum(pwLD4)
   pqMean4 <- mean(pairwisePQProd(gt4))
   minus2LdN <- -2*LDmean4*n4
   
@@ -89,15 +109,16 @@ anaFun <- function(repID, simID){
   gHat <- log(pBar2/(1-pBar2)) # selected sites, scalar
   gammaExp <- -2*NN*ss
   B <- gHat/gammaExp
-  Bprime <- unname(tp4[4])/gammaExp# neutral sites, computed from pi, only for SFS80
+  Bprime <- unname(tp4[4])/2/NN/uu# neutral sites, computed from observed pi and expected w/o sle, only for SFS80
   
   
   dataRow <- c(LL=LL, ss=ss, NN=NN, uu=uu, kk=kk, gammaExp=gammaExp,
                tp2, tw2, ta2, de2,dtwp2,
                tp4, tw4, ta4, de4,dtwp4,
                pBar2=pBar2, pBar4=pBar4,
-               LDmean2=LDmean2, LDmean2ss=LDmean2 * abs(ss), LD2=LDmean2/sqrt(pqMean2), minus2LdS=minus2LdS,
-               LDmean4=LDmean4, LDmean4ss=LDmean4 * abs(ss), LD4=LDmean4/sqrt(pqMean4), minus2LdN=minus2LdN,
+               #
+               LDmeanSelVar=LDmean2, LDsumSel=LDsumSel, LDmean2ss=LDmean2 * abs(ss), LD2=LDmean2/sqrt(pqMean2),# minus2LdS=minus2LdS,
+               LDmeanNeuVar=LDmean4, LDsumNeu=LDsumNeu, LDmean4ss=LDmean4 * abs(ss), LD4=LDmean4/sqrt(pqMean4),# minus2LdN=minus2LdN,
                n2=n2, n4=n4,
                B=B, Bprime=Bprime,
                varW=varW, varWexp=varWexp, varWsum=varWsum,
@@ -111,12 +132,12 @@ anaFun <- function(repID, simID){
 
 
 
-#r0 <- anaFun("0002", "02")
+r0 <- anaFun("0002", "02")
 #r0[1:60]
 
-
-
-library(parallel)
+# 
+# 
+# library(parallel)
 # t0 <- Sys.time()
 # a <- mclapply(1:10, function(x) anaFun(sprintf("%04d", x), "02"), mc.cores = 10)
 # Sys.time() - t0
@@ -160,116 +181,116 @@ names(b)
 
 
 # Avg SFS -------------------------------------------------------------------------------------
-
-sfsPart <- b[,startsWith(names(b), "sfs")]
-
-# get averaged conditional SFS
-propCondSfs <- function(x, fro, to){
-  ll <- to-fro+1
-  y <- x[,fro:to]
-  z <- colSums(y)
-  z[1] <- 0
-  z[ll] <- 0
-  sfs <- z/sum(z)
-  sfs[2:(ll-1)]
-}
-head(sfsPart)
-cSfsS10 <- propCondSfs(sfsPart, 1,11)
-cSfsS20 <- propCondSfs(sfsPart, 12,32)
-cSfsS40 <- propCondSfs(sfsPart, 33,73)
-cSfsS80 <- propCondSfs(sfsPart, 74,154)
-
-cSfsN10 <- propCondSfs(sfsPart, 155,165)
-cSfsN20 <- propCondSfs(sfsPart, 166,186)
-cSfsN40 <- propCondSfs(sfsPart, 187,227)
-cSfsN80 <- propCondSfs(sfsPart, 228,308)
-
-
-
-
-# Stats from PK -------------------------------------------------------------------------------
-
-
-l10 <- readLines("v03sfs10.txt")
-l20 <- readLines("v03sfs20.txt")
-l40 <- readLines("v03sfs40.txt")
-l80 <- readLines("v03sfs80.txt")
-
-
-
-E10 <- sapply(l10, secCol, USE.NAMES = F)
-E20 <- sapply(l20, secCol, USE.NAMES = F)
-E40 <- sapply(l40, secCol, USE.NAMES = F)
-E80 <- sapply(l80, secCol, USE.NAMES = F)
-
-# P&K expectations as list
-sfsPK <- list(E10, E20, E40, E80)
-
-
-pic <- theta_pi(sfsPK[[1]])
-pic
-theta_w(sfsPK[[4]])
-
-
-# pi = theta_w * a_n * pic
-# p_seg = theta_w * a_n () # i.e. depends on sample size
-
-# delta_theta_w = 1 - pi/theta_w
-# = 1 - theta_w*a_n*pic/theta_w
-# = 1 - a_n*pic
-
-# delta-theta-w = 1 – 1/(pic-c x an)
-1 - theta_pi(c(0, sfsPK[[1]], 0))*a_sub_1(10)
-1 - theta_pi(c(0, sfsPK[[2]], 0))*a_sub_1(20)
-1 - theta_pi(c(0, sfsPK[[3]], 0))*a_sub_1(40)
-1 - theta_pi(c(0, sfsPK[[4]], 0))*a_sub_1(80)
-
-
-
-
-# delta theta w prime -------------------------------------------------------------------------
 # 
-# sapply(c(10, 20, 40, 80), deltaThetaMax)
-# deltaTheta(c(0, cSfsN10, 0))
-# deltaTheta(c(0, cSfsN20, 0))
-# deltaTheta(c(0, cSfsN40, 0))
-# deltaTheta(c(0, cSfsN80, 0))
-deltaThetaPrime(c(0, cSfsN10, 0))
-deltaThetaPrime(c(0, cSfsN20, 0))
-deltaThetaPrime(c(0, cSfsN40, 0))
-deltaThetaPrime(c(0, cSfsN80, 0))
-
-
-deltaThetaPrime(c(0, sfsPK[[1]], 0))
-deltaThetaPrime(c(0, sfsPK[[2]], 0))
-deltaThetaPrime(c(0, sfsPK[[3]], 0))
-deltaThetaPrime(c(0, sfsPK[[4]], 0))
-
-# get conditional SFS proportions (neutral sites)
-sfs4condRel <- lapply(sfs4, function(x){
-  v <- x[2:(length(x)-1)]
-  v / sum(v)
-})
-
-# Delta theta_w prime
-dtwp <- sapply(sfs4condRel, deltaThetaPrime)
-names(dtwp) <- c("dtwp10", "dtwp20", "dtwp40", "dtwp80")
-
-
-
-# Stuff ---------------------------------------------------------------------------------------
-sss0 <- b[1,274:354]
-sss1 <- sss0; sss1[1] <- 0; sss1[81] <- 0
-sss2 <- sss1/sum(sss1)
-tajd(sss0)
-tajd(sss1)
-tajd(sss2)
-
-
-
-curve(dchisq(x,2),-1,10)
-curve(pchisq(x,2),-1,10)
-
+# sfsPart <- b[,startsWith(names(b), "sfs")]
+# 
+# # get averaged conditional SFS
+# propCondSfs <- function(x, fro, to){
+#   ll <- to-fro+1
+#   y <- x[,fro:to]
+#   z <- colSums(y)
+#   z[1] <- 0
+#   z[ll] <- 0
+#   sfs <- z/sum(z)
+#   sfs[2:(ll-1)]
+# }
+# head(sfsPart)
+# cSfsS10 <- propCondSfs(sfsPart, 1,11)
+# cSfsS20 <- propCondSfs(sfsPart, 12,32)
+# cSfsS40 <- propCondSfs(sfsPart, 33,73)
+# cSfsS80 <- propCondSfs(sfsPart, 74,154)
+# 
+# cSfsN10 <- propCondSfs(sfsPart, 155,165)
+# cSfsN20 <- propCondSfs(sfsPart, 166,186)
+# cSfsN40 <- propCondSfs(sfsPart, 187,227)
+# cSfsN80 <- propCondSfs(sfsPart, 228,308)
+# 
+# 
+# 
+# 
+# # Stats from PK -------------------------------------------------------------------------------
+# 
+# 
+# l10 <- readLines("v03sfs10.txt")
+# l20 <- readLines("v03sfs20.txt")
+# l40 <- readLines("v03sfs40.txt")
+# l80 <- readLines("v03sfs80.txt")
+# 
+# 
+# 
+# E10 <- sapply(l10, secCol, USE.NAMES = F)
+# E20 <- sapply(l20, secCol, USE.NAMES = F)
+# E40 <- sapply(l40, secCol, USE.NAMES = F)
+# E80 <- sapply(l80, secCol, USE.NAMES = F)
+# 
+# # P&K expectations as list
+# sfsPK <- list(E10, E20, E40, E80)
+# 
+# 
+# pic <- theta_pi(sfsPK[[1]])
+# pic
+# theta_w(sfsPK[[4]])
+# 
+# 
+# # pi = theta_w * a_n * pic
+# # p_seg = theta_w * a_n () # i.e. depends on sample size
+# 
+# # delta_theta_w = 1 - pi/theta_w
+# # = 1 - theta_w*a_n*pic/theta_w
+# # = 1 - a_n*pic
+# 
+# # delta-theta-w = 1 – 1/(pic-c x an)
+# 1 - theta_pi(c(0, sfsPK[[1]], 0))*a_sub_1(10)
+# 1 - theta_pi(c(0, sfsPK[[2]], 0))*a_sub_1(20)
+# 1 - theta_pi(c(0, sfsPK[[3]], 0))*a_sub_1(40)
+# 1 - theta_pi(c(0, sfsPK[[4]], 0))*a_sub_1(80)
+# 
+# 
+# 
+# 
+# # delta theta w prime -------------------------------------------------------------------------
+# # 
+# # sapply(c(10, 20, 40, 80), deltaThetaMax)
+# # deltaTheta(c(0, cSfsN10, 0))
+# # deltaTheta(c(0, cSfsN20, 0))
+# # deltaTheta(c(0, cSfsN40, 0))
+# # deltaTheta(c(0, cSfsN80, 0))
+# deltaThetaPrime(c(0, cSfsN10, 0))
+# deltaThetaPrime(c(0, cSfsN20, 0))
+# deltaThetaPrime(c(0, cSfsN40, 0))
+# deltaThetaPrime(c(0, cSfsN80, 0))
+# 
+# 
+# deltaThetaPrime(c(0, sfsPK[[1]], 0))
+# deltaThetaPrime(c(0, sfsPK[[2]], 0))
+# deltaThetaPrime(c(0, sfsPK[[3]], 0))
+# deltaThetaPrime(c(0, sfsPK[[4]], 0))
+# 
+# # get conditional SFS proportions (neutral sites)
+# sfs4condRel <- lapply(sfs4, function(x){
+#   v <- x[2:(length(x)-1)]
+#   v / sum(v)
+# })
+# 
+# # Delta theta_w prime
+# dtwp <- sapply(sfs4condRel, deltaThetaPrime)
+# names(dtwp) <- c("dtwp10", "dtwp20", "dtwp40", "dtwp80")
+# 
+# 
+# 
+# # Stuff ---------------------------------------------------------------------------------------
+# sss0 <- b[1,274:354]
+# sss1 <- sss0; sss1[1] <- 0; sss1[81] <- 0
+# sss2 <- sss1/sum(sss1)
+# tajd(sss0)
+# tajd(sss1)
+# tajd(sss2)
+# 
+# 
+# 
+# curve(dchisq(x,2),-1,10)
+# curve(pchisq(x,2),-1,10)
+# 
 
 # Wrap it all up ####
 # per parameter set
@@ -287,7 +308,7 @@ library(parallel)
 
 analyseAll <- function(simID, maxRep=10, nCores=10){
   # TODO autodetermine number of runs
-  a <- mclapply(1:maxRep, function(x) anaFun(sprintf("%04d", x), simID), mc.cores = 10)
+  a <- mclapply(1:maxRep, function(x) anaFun(sprintf("%04d", x), simID), mc.cores = nCores)
   b <- as.data.frame(do.call(rbind, a))
   statCI <- t(apply(b, 2, meanSE))
   
@@ -342,7 +363,7 @@ analyseAll <- function(simID, maxRep=10, nCores=10){
   dtwp80PK <- deltaThetaPrime(sfsPK[[4]])
   
   list(mSE = statCI,
-       ldNums = statCI[rownames(statCI) %in% c("LD2", "minus2LdS", "LDmean2", "LDmean2ss", "LD4", "minus2LdN" , "LDmean4", "LDmean4ss"),],
+       ldNums = statCI[rownames(statCI) %in% c("LD2", "LDmeanSelVar", "LDsumSel", "LD4", "LDmeanNeuVar", "LDsumNeu"),],
        pbbNums = statCI[rownames(statCI) %in% c("pBar2", "B", "Bprime"),],
        dtwp = statCI[rownames(statCI) %in% c("dtwpN_10", "dtwpN_20", "dtwpN_40", "dtwpN_80"),],
        varNums = statCI[rownames(statCI) %in% c("varW", "varWexp", "varWsum"),],
@@ -359,7 +380,9 @@ analyseAll <- function(simID, maxRep=10, nCores=10){
   
 }
 a02 <- analyseAll("02", maxRep = 200, nCores = 10) # there are only 100 reps
+#a02 <- analyseAll("02", maxRep = 10, nCores = 10)
 a02$ldNums
+a02$varNums
 a03 <- analyseAll("03", maxRep = 200, nCores = 10) # there are 200 replicates
 a04 <- analyseAll("04", maxRep = 200, nCores = 10) # L=10k, takes long!, there are 200 replicates
 a05 <- analyseAll("05", maxRep = 200, nCores = 10) # L=10k, takes long!, there are 200 replicates
@@ -470,6 +493,6 @@ for(i in wb_get_sheet_names(wb)){
   wb_set_col_widths(wb, sheet = i, cols=1:100, widths="auto")  
 }
 
-#wb_save(wb, "Simulations-10.xlsx")
+#wb_save(wb, "Simulations-11.xlsx")
 
 

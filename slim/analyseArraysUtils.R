@@ -1,7 +1,7 @@
-# import gt files
-
 # this is a script of utility functions, to be used bu doArrayAnalysisGeneral.R
 
+
+# import gt files
 # assumes 1st col is position, all other are haploid GTs (0/1)
 read.gt <- function(x){
   a <-read.table(x, sep=",")
@@ -116,7 +116,7 @@ deltaTheta <- function(sfs, persite=F){
   1 - theta_pi(sfs, persite=persite)/theta_w(sfs, persite=persite)
 }
 deltaThetaMax <- function(n){
-  1 - a_sub_1(n)/n
+  1 - 2*a_sub_1(n)/n
 }
 
 deltaThetaPrime <- function(sfs, persite=T){
@@ -171,7 +171,7 @@ ldDOverSqrtProd <- function(gtRows){
   (xx[4] - qA*qB)/sqrt(qA*qB*(1-qA)*(1-qB))
 }
 
-
+# returns a vector (lower triangle of a matrix)
 pairwiseLD <- function(gt){
   #takes haplotype matrix, drops invariant sites
   gts <- gt[apply(gt, 1, sd) != 0,]
@@ -182,7 +182,7 @@ pairwiseLD <- function(gt){
       oVals[i,j] <- ldD(gts[c(i,j),])
     }
   }
-  oVals[lower.tri(oVals)]
+  return(oVals[lower.tri(oVals)])
   
 }
 
