@@ -177,6 +177,7 @@ pairwiseLD <- function(gt){
   gts <- gt[apply(gt, 1, sd) != 0,]
   oVals <- matrix(NA, nrow(gts), nrow(gts))
   for(i in 2:nrow(gts)){
+    #print(paste0(i, " out of ", nrow(gts)))
     for(j in 1:(i-1)){
       # need to decide which function to call here!
       oVals[i,j] <- ldD(gts[c(i,j),])

@@ -132,7 +132,7 @@ anaFun <- function(repID, simID){
 
 
 
-r0 <- anaFun("0002", "02")
+r0 <- anaFun("0002", "06")
 #r0[1:60]
 
 # 
@@ -379,15 +379,20 @@ analyseAll <- function(simID, maxRep=10, nCores=10){
        )
   
 }
-a02 <- analyseAll("02", maxRep = 200, nCores = 10) # there are only 100 reps
+a02 <- analyseAll("02", maxRep = 200, nCores = 10) 
 #a02 <- analyseAll("02", maxRep = 10, nCores = 10)
 a02$ldNums
 a02$varNums
 a03 <- analyseAll("03", maxRep = 200, nCores = 10) # there are 200 replicates
 a04 <- analyseAll("04", maxRep = 200, nCores = 10) # L=10k, takes long!, there are 200 replicates
 a05 <- analyseAll("05", maxRep = 200, nCores = 10) # L=10k, takes long!, there are 200 replicates
+# need to add P&K sfs files before this can run:
+t0 <- Sys.time()
+a06 <- analyseAll("06", maxRep = 200, nCores = 10)
+Sys.time() - t0
 rownames(aaa$mSE)
 #rownames(bbb)
+a06[[1]]
 
 # make code to combine mean and CIs into one col!
 array2tableCol <- function(arr, sigfig=3){
@@ -417,6 +422,13 @@ a02$sfsPK
 #ps <- list(a02, a03) # 10 each for debug
 ps <- list(a02, a03, a04, a05)
 #saveRDS(ps, "ps.rds")
+ps <- readRDS("ps.rds")
+length(ps[[1]])
+length(a06)
+ps[[1]][[1]]
+ps6 <- c(ps, list(a06))
+#ps <- ps6
+#saveRDS(ps6, "ps6.rds")
 #ps <- readRDS("ps.rds")
 
 
@@ -493,6 +505,6 @@ for(i in wb_get_sheet_names(wb)){
   wb_set_col_widths(wb, sheet = i, cols=1:100, widths="auto")  
 }
 
-#wb_save(wb, "Simulations-11.xlsx")
+#wb_save(wb, "Simulations-12.xlsx")
 
 

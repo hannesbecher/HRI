@@ -8,6 +8,9 @@ nn <- 2500 # number of sites in the genome
 
 wSum <- colSums(gg * -ss ) + 1
 wProd <- exp(colSums(log(gg * -ss +1)))
+var(wSum)
+var(wProd)
+var(log(wProd))
 hist(wSum)
 hist(wProd)
 var(wSum)
