@@ -2,9 +2,9 @@
 initialize() {
 	//defineConstant("REPID", "000"); // must be set for interactive run
 	defineConstant("NN", 1000);
-	defineConstant("ss", -(1e-3));
+	defineConstant("ss", -(1e-2));
 	defineConstant("kk", 1);
-	defineConstant("L", 2500);
+	defineConstant("L", 10000);
 	defineConstant("u", 2*1e-5);
 	
 	// m2 models a biallelic locus; an m2 mutation is "A",
@@ -82,7 +82,7 @@ late() {
 	if (any(freqs == 0.5))
 		sim.subpopulations.genomes.removeMutations(muts[freqs == 0.5], T);
 }
-200000 late() {
+400000 late() {
 	// get unique mutation of each type
 	ms2=unique(p1.genomes.mutationsOfType(m2));
 	ms4=unique(p1.genomes.mutationsOfType(m4));
