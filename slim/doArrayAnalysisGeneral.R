@@ -1,6 +1,7 @@
 # Use this script to compute stats for sets of simulations
 
 setwd("~/git_repos/HRI/slim/")
+
 source("analyseArraysUtils.R")
 #set.seed(123345)
 #anaFun <- function(repID, l=2500){
@@ -12,9 +13,10 @@ anaFun <- function(repID, simID){
   eval(str2expression(parsLines))  
   
   # genotype matrices (whole population) with position as "rownames"
-  gt2 <- read.gt(paste0("params", simID, "/data/sim", repID, ".gt2"))
-  gt4 <- read.gt(paste0("params", simID, "/data/sim", repID, ".gt4"))
-  
+  # gt2 <- read.gt(paste0("params", simID, "/data/sim", repID, ".gt2"))
+  # gt4 <- read.gt(paste0("params", simID, "/data/sim", repID, ".gt4"))
+  gt2 <- read.gt(paste0("~/Projects/HRI/sim", simID, "/sim", repID, ".gt2"))
+  gt4 <- read.gt(paste0("~/Projects/HRI/sim", simID, "/sim", repID, ".gt4"))
   
   # lists of samples of 10/20/40/80 haploids
   samp2 <- lapply(c(10, 20, 40, 80), function(n) sampleGt(gt2, n))
@@ -131,8 +133,10 @@ anaFun <- function(repID, simID){
 
 
 
+t0 <- Sys.time()
+r0 <- anaFun("0002", "04")
+Sys.time() - t0
 
-r0 <- anaFun("0002", "06")
 #r0[1:60]
 
 # 
@@ -374,22 +378,50 @@ analyseAll <- function(simID, maxRep=10, nCores=10){
        dtwp40PK=dtwp40PK,
        dtwp80PK=dtwp80PK,
        cSfsN = list(c(0, cSfsN10, 0), c(0, cSfsN20, 0), c(0, cSfsN40, 0), c(0, cSfsN80, 0)),
-       cSfsS = list(c(0, cSfsS10, 0), c(0, cSfsS20, 0), c(0, cSfsS40, 0), c(0, cSfsS80, 0))
+       cSfsS = list(c(0, cSfsS10, 0), c(0, cSfsS20, 0), c(0, cSfsS40, 0), c(0, cSfsS80, 0)),
+       reps=b
        #sfsPart=sfsPart # check if this works correctly and whether required at all. SFS is mean SE object as well.
        )
   
 }
-a02 <- analyseAll("02", maxRep = 200, nCores = 10) 
-#a02 <- analyseAll("02", maxRep = 10, nCores = 10)
-a02$ldNums
-a02$varNums
-a03 <- analyseAll("03", maxRep = 200, nCores = 10) # there are 200 replicates
-a04 <- analyseAll("04", maxRep = 200, nCores = 10) # L=10k, takes long!, there are 200 replicates
-a05 <- analyseAll("05", maxRep = 200, nCores = 10) # L=10k, takes long!, there are 200 replicates
-# need to add P&K sfs files before this can run:
 t0 <- Sys.time()
-a06 <- analyseAll("06", maxRep = 200, nCores = 10)
+a02 <- analyseAll("02", maxRep = 200, nCores = 4) 
 Sys.time() - t0
+#str(a02$reps)
+#hist(a02$reps$deN_20)
+t0 <- Sys.time()
+a03 <- analyseAll("03", maxRep = 200, nCores = 4) # there are 200 replicates
+Sys.time() - t0
+
+t0 <- Sys.time()
+a04 <- analyseAll("04", maxRep = 200, nCores = 4) # L=10k, takes long!, there are 200 replicates
+Sys.time() - t0
+ps <- list(a02, a03, a04)
+saveRDS(ps, "ps.rds")
+Sys.time()
+
+t0 <- Sys.time()
+a05 <- analyseAll("05", maxRep = 4, nCores = 4) # L=10k, takes long!, there are 200 replicates
+Sys.time() - t0
+ps <- list(a02, a03, a04, a05)
+saveRDS(ps, "ps.rds")
+Sys.time()
+
+t0 <- Sys.time()
+#a06 <- analyseAll("06", maxRep = 4, nCores = 4)
+a06 <- analyseAll("06", maxRep = 200, nCores = 4)
+Sys.time() - t0
+ps <- list(a02, a03, a04, a05, a06)
+saveRDS(ps, "ps.rds")
+Sys.time()
+
+t0 <- Sys.time()
+a07 <- analyseAll("07", maxRep = 200, nCores = 4)
+Sys.time() - t0
+ps <- list(a02, a03, a04, a05, a06, a07)
+saveRDS(ps, "ps.rds")
+Sys.time()
+
 rownames(aaa$mSE)
 #rownames(bbb)
 a06[[1]]
@@ -419,10 +451,11 @@ a02$mSE[,1]
 a02$sfsNums
 a02$sfsPK
 
-#ps <- list(a02, a03) # 10 each for debug
-ps <- list(a02, a03, a04, a05)
+#ps <- list(a02, a03)
+#ps <- list(a02, a03, a04, a05)
 #saveRDS(ps, "ps.rds")
-ps <- readRDS("ps.rds")
+Sys.time()
+#ps <- readRDS("ps.rds")
 length(ps[[1]])
 length(a06)
 ps[[1]][[1]]
