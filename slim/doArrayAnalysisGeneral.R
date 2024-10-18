@@ -134,7 +134,7 @@ anaFun <- function(repID, simID){
 
 
 t0 <- Sys.time()
-r0 <- anaFun("0002", "04")
+r0 <- anaFun("0002", "07")
 Sys.time() - t0
 
 #r0[1:60]
@@ -407,9 +407,15 @@ ps <- list(a02, a03, a04, a05)
 saveRDS(ps, "ps.rds")
 Sys.time()
 
+ps <- readRDS("ps.rds")
+a02 <- ps[[1]]
+a03 <- ps[[2]]
+a04 <- ps[[3]]
+a05 <- ps[[4]]
+
 t0 <- Sys.time()
 #a06 <- analyseAll("06", maxRep = 4, nCores = 4)
-a06 <- analyseAll("06", maxRep = 200, nCores = 4)
+a06 <- analyseAll("06", maxRep = 200, nCores = 10)
 Sys.time() - t0
 ps <- list(a02, a03, a04, a05, a06)
 saveRDS(ps, "ps.rds")
