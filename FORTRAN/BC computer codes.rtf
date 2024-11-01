@@ -1,0 +1,1796 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2761
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;\f1\fswiss\fcharset0 Helvetica-Bold;}
+{\colortbl;\red255\green255\blue255;\red0\green0\blue0;}
+{\*\expandedcolortbl;;\cssrgb\c0\c0\c0;}
+\paperw11900\paperh16840\margl1440\margr1440\vieww19460\viewh14480\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 \
+\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f1\b\fs32 \cf2 \expnd0\expndtw0\kerning0
+	The programs are written in GFortran for the MacIntosh \
+        (https://gnuc.org.wiki/GFortranBinariesMacOS)\
+\
+	
+\fs28 Program for HRI with no recombination; testing against  Devi et al simulation results in their Fig. S3 (our Figs 1 and 2)
+\fs32 \
+
+\fs22     
+\f0\b0 program hrihap4\
+!   several genome sizes allowed\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+\cf2 !   constant mutation rate
+\f1\b\fs32 \
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\b0\fs22 \cf2 \
+    real :: s,u,gamm,alpha0,kappa,B\
+    integer :: lgen,nmax,N\
+\
+    CHARACTER*20 FINP\
+    CHARACTER*20 FOUT\
+\
+    WRITE (*,*) 'Input file?'\
+    READ (*,*) FINP\
+    OPEN (2,FILE=FINP)\
+    WRITE (*,*) 'Output file?'\
+    READ (*,*) FOUT\
+    OPEN (1,FILE=FOUT)\
+    write (1,*) 'Hill-Robertson interference with no recombination and haploidy'\
+    write (1,*) 'Testing against Devi et al results with constant mutation rate-Fig S3'\
+    write (1,*) ''\
+\
+    READ (2,*) s\
+    READ (2,*) u\
+    READ (2,*) kappa\
+    READ (2,*) lgen\
+    READ (2,*) nmax\
+    \
+    write (1,*) 's= ',s\
+    write (1,*) 'u= ',u\
+    write (1,*) 'Mutational bias towards deleterious variants= ',kappa\
+    write (1,*) 'Genome size= ',lgen\
+    write (1,*) 'Maximum number of iterations= ',nmax\
+    write (1,*) ''\
+\
+    write (*,*) 's= ',s\
+    write (*,*) 'u= ',u\
+    write (*,*) 'Mutational bias towards deleterious variants= ',kappa\
+    write (*,*) 'Genome size= ',lgen\
+    write (*,*) 'Maximum number of iterations= ',nmax\
+    write (*,*) ''\
+\
+    write (*,*) 'CONT?'\
+    read (*,*) CONT\
+!   allows program to be cancelled if desired\
+    if(CONT.eq.1) go to 100\
+\
+    algen=lgen\
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\
+10  write (*,*) 'Ns?'\
+    read (*,*) gam2\
+    \
+    if(gam2.le.0) go to 100\
+    gamm=2*gam2\
+    N=gam2/s\
+    AN=N\
+    alpha0=2*N*u\
+    write (*,*) 'Approximate mean p?'\
+    read (*,*) p1\
+    B1=(log(kappa*p1/(1-p1)))/AN\
+    write (1,*) ''\
+    write (1,*) ''\
+    write (1,*) 'N= ',N\
+    write (1,*) 'Ns= ',gam2\
+    write (1,*) 'Scaled mutation rate to deleterious variants (2Nu)= ',alpha0\
+    write (1,*) ''\
+    write (1,*) 'Initial B value= ',B1\
+    write (1,*) ''\
+    write (*,*) 'Initial B value= ',B1\
+    write (*,*) ''\
+\
+    alpha2=algen*alpha0\
+!   scaled mutation rate for whole genome\
+    write (1,*) 'alpha0=',alpha0,'alpha2= ',alpha2\
+    write (1,*) ''\
+    write (*,*) 'alpha0=',alpha0,'alpha2= ',alpha2\
+    write (*,*) ''\
+    X=alpha2*(gamm**2)/((1+kappa)**3)\
+    write(*,*) 'X =',X\
+    B0=1-X/(1+3*X)\
+    write(1,*) 'Linear approximation to B (small gamma)=',B0\
+    write(1,*) ''\
+    write(*,*) 'Linear approximation to B (small gamma)=',B0\
+    write(*,*) ''\
+\
+    do 20 i=1,nmax\
+    gamexp=exp(0.0-B1*gamm)\
+    f1=1-gamexp\
+    f2=1+kappa*gamexp\
+    R=alpha2/gamm\
+    g=((f1/f2)**3)*R\
+    f0=log(B1)+g\
+    df0=(1.0/B1)+(1.5*alpha2)*(1+kappa)*gamexp*(f1**2)/(f2**4)\
+    df1=abs(df0)\
+    \
+    if(df1.le.f0) then\
+    df0=10*df0\
+    end if\
+\
+    write(*,*)\
+    write (*,*) 'i= ',i,' g= ',g,' f0= ',f0,' df0= ',df0\
+    B2=B1-f0/df0\
+    write (*,*) 'B= ',B2\
+    del=(B1-B2)/B1\
+    del1=abs(del)\
+    if(del1.le.0.00001) go to 30\
+    if(i.ge.nmax) go to 40\
+    B1=B2\
+20  continue\
+\
+40  write (1,*) ''\
+    write (1,*) 'Iteration does not converge'\
+    write (1,*) 'del= ',del,' f= ',fo\
+    write (1,*) ''\
+    write (1,*) 'BC approximations'\
+    write (1,*) 'B= ',B2\
+    B1=B2\
+    p=1.0/(1+kappa*gamexp)\
+    pi1=2*(alpha0/gamm)*(1.0-gamexp)/(1.0+kappa*gamexp)\
+    pi0=2*(alpha0/gamm)*(1.0-exp(0.0-gamm))/(1.0+kappa*exp(0.0-gamm))\
+    pi2=pi1/pi0\
+    write (1,*) 'Predicted mean p= ',p\
+    write (1,*) 'Predicted pi= ',pi1,' Ratio wrt free rec. value= ',pi2\
+    gamexp=exp(0.0-B1*gamm)\
+    write (*,*) 'Iteration does not converge'\
+    write (*,*) 'del= ',del,' f= ',fo\
+    write (*,*) ''\
+    write (*,*) 'BC approximations'\
+    write (*,*) 'B= ',B2\
+    write (*,*) 'Predicted mean p= ',p\
+    write (*,*) 'Predicted pi= ',pi1,' Ratio wrt free rec. value= ',pi2\
+    write (1,*) ''\
+    write (1,*) 'Devi et al. approximations'\
+    B1=(gamm**0.333)*(alpha2**0.333)\
+    B1=((16*(1+kappa))**0.333)/B1\
+\
+    if(B1.ge.1.0) then\
+    B1=1\
+    end if\
+\
+    gamexp=exp(0.0-B1*gamm)\
+    write (1,*) 'Without phimax'\
+    write (1,*) 'B= ',B1\
+    gamexp=exp(0.0-B1*gamm)\
+    p=1.0/(1+kappa*gamexp)\
+    pi1=2*(alpha0/gamm)*(1.0-gamexp)/(1.0+kappa*gamexp)\
+    pi0=2*(alpha0/gamm)*(1.0-exp(0.0-gamm))/(1.0+kappa*exp(0.0-gamm))\
+    pi2=pi1/pi0\
+    write (1,*) 'Predicted mean p= ',p\
+    write (1,*) 'Predicted pi= ',pi1,' Ratio wrt free rec. value= ',pi2\
+    write (1,*) ''\
+    u01=u/kappa\
+    phimax=1/(1+gamm/log(1+(s/u01)))\
+    B1=B1*phimax**0.3333\
+    \
+    if(B1.ge.1.0) then\
+    B1=1\
+    end if\
+\
+    gamexp=exp(0.0-B1*gamm)\
+    p=1.0/(1+kappa*gamexp)\
+    pi1=2*(alpha0/gamm)*(1.0-gamexp)/(1.0+kappa*gamexp)\
+    pi0=2*(alpha0/gamm)*(1.0-exp(0.0-gamm))/(1.0+kappa*exp(0.0-gamm))\
+    pi2=pi1/pi0\
+    write (1,*) 'With phimax'\
+    write (1,*) 'B= ',B1\
+    write (1,*) 'Predicted mean p= ',p\
+    write (1,*) 'Predicted pi= ',pi1,' Ratio wrt free rec. value= ',pi2\
+    write (1,*) ''\
+    go to 10\
+\
+30  write (1,*) ''\
+    write (1,*) 'Iteration complete'\
+    write (1,*) 'Number of steps= ',i\
+    write (1,*) 'del= ',del,' f= ',fo\
+    write (1,*) ''\
+    \
+    p=1.0/(1+kappa*gamexp)\
+    pmax=1.0/(1+kappa*exp(0.0-gamm))\
+    pi1=2*(alpha0/gamm)*(1.0-gamexp)/(1.0+kappa*gamexp)\
+    pi0=2*(alpha0/gamm)*(1.0-exp(0.0-gamm))/(1.0+kappa*exp(0.0-gamm))\
+    pi2=pi1/pi0\
+    write (1,*) 'BC approximations'\
+    write (1,*) 'B= ',B1\
+    write (1,*) 'Predicted mean p= ',p\
+    write (1,*) 'Mean p without HRI= ',pmax\
+    write (1,*) 'Predicted pi= ',pi1,' Ratio wrt free rec. value= ',pi2\
+    write (1,*) ''\
+\
+    write (*,*) 'Iteration complete'\
+    write (*,*) 'Number of steps= ',i\
+    write (*,*) 'BC approximations'\
+    write (*,*) 'B= ',B1\
+    write (*,*) 'Predicted mean p= ',p\
+    write (*,*) 'Predicted pi= ',pi1,' Ratio wrt free rec. value= ',pi2\
+    write (*,*) ''\
+\
+    write (1,*) 'Devi et al. approximations'\
+    B1=(gamm**0.333)*(alpha2**0.333)\
+    B1=((16*(1+kappa))**0.333)/B1\
+\
+    if(B1.ge.1.0) then\
+    B1=1\
+    end if\
+\
+    gamexp=exp(0.0-B1*gamm)\
+    p=1.0/(1+kappa*gamexp)\
+    pi1=2*(alpha0/gamm)*(1.0-gamexp)/(1.0+kappa*gamexp)\
+    pi0=2*(alpha0/gamm)*(1.0-exp(0.0-gamm))/(1.0+kappa*exp(0.0-gamm))\
+    pi2=pi1/pi0\
+    write (*,*) ''\
+    write (1,*) 'Without phimax'\
+    write (1,*) 'B= ',B1\
+    write (1,*) 'Predicted mean p= ',p\
+    write (1,*) 'Predicted pi= ',pi1,' Ratio wrt free rec. value= ',pi2\
+    write (1,*) ''\
+    u01=u/kappa\
+    phimax=1/(1+gamm/log(1+(s/u01)))\
+    B1=B1*phimax**0.3333\
+\
+    if(B1.ge.1.0) then\
+    B1=1\
+    end if\
+    \
+    gamexp=exp(0.0-B1*gamm)\
+    p=1.0/(1+kappa*gamexp)\
+    pi1=2*(alpha0/gamm)*(1.0-gamexp)/(1.0+kappa*gamexp)\
+    pi0=2*(alpha0/gamm)*(1.0-exp(0.0-gamm))/(1.0+kappa*exp(0.0-gamm))\
+    pi2=pi1/pi0\
+    write (1,*) 'With phimax'\
+    write (1,*) 'B= ',B1\
+    write (1,*) 'Predicted mean p= ',p\
+    write (1,*) 'Predicted pi= ',pi1,' Ratio wrt free rec. value= ',pi2\
+    write (1,*) ''\
+\
+    go to 10\
+100 end program hrihap4\
+\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f1\b\fs28 \cf2 	Program for HRI with no recombination; testing against Devi et al simulation results in their Fig. S4 (our Table 1)
+\f0\b0\fs22 \
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+\cf2 \
+    program hrihap5\
+!   constant mutation rate\
+!   several genome sizes allowed\
+!   neutral diversity Ne calculated\
+    real :: s,u,gamm,alpha0,kappa,B,f,x1,x2,va3vm2,vavm,B1,B11,Tmax\
+    integer :: lgen,nmax,N,simp\
+\
+    CHARACTER*20 FINP\
+    CHARACTER*20 FOUT\
+\
+    WRITE (*,*) 'Input file?'\
+    READ (*,*) FINP\
+    OPEN (2,FILE=FINP)\
+    WRITE (*,*) 'Output file?'\
+    READ (*,*) FOUT\
+    OPEN (1,FILE=FOUT)\
+    write (1,*) 'Hill-Robertson interference with no recombination and haploidy'\
+    write (1,*) 'Testing against Devi et al results with constant mutation rate'\
+    write (1,*) 'Coalescence Ne calculated'\
+    write (1,*) ''\
+\
+    READ (2,*) s\
+    READ (2,*) u\
+    READ (2,*) kappa\
+    READ (2,*) N\
+    READ (2,*) nmax\
+    READ (2,*) nsimp\
+    READ (2,*) Tmax\
+    \
+    AN=N\
+    gamm=2*N*s\
+    alpha0=2*N*u\
+    \
+    write (1,*) 's= ',s,' N= ',N\
+    write (1,*) 'Scaled selection strength (2Ns)= ',gamm\
+    write (1,*) 'u= ',u\
+    write (1,*) 'Scaled mutation rate to deleterious variants (2Nu)= ',alpha0\
+    write (1,*) 'Mutational bias towards deleterious variants= ',kappa\
+    write (1,*) 'Maximum number of NR iterations= ',nmax\
+    write (1,*) 'Number of points for integrations= ',nsimp\
+    write (1,*) 'Upper limit to outer integration= ',Tmax\
+    write (1,*) ''\
+\
+    write (*,*) 's= ',s,' N= ',N\
+    write (*,*) 'Scaled selection strength (2Ns)= ',gamm\
+    write (*,*) 'u= ',u\
+    write (*,*) 'Scaled selection strength= ',gamm\
+    write (*,*) 'Scaled mutation rate to deleterious variants = ',alpha0\
+    write (*,*) 'Mutational bias towards deleterious variants= ',kappa\
+    write (*,*) 'Maximum number of N50R iterations= ',nmax\
+    write (1,*) 'Number of points for integrations= ',nsimp\
+    write (1,*) 'Upper limit to outer integration= ',Tmax\
+    write (*,*) ''\
+\
+    write (*,*) 'CONT?'\
+    read (*,*) CONT\
+!   allows program to be cancelled if desired\
+    if(CONT.eq.1) go to 100\
+\
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\
+10  write (*,*) 'Genome size?'\
+    read (*,*) lgen\
+    if(lgen.eq.0) go to 100\
+    write (*,*) 'Initial B value?'\
+    read (*,*) B1\
+    write (1,*) ''\
+    write (1,*) ''\
+    write (1,*) 'Genome size= ',lgen\
+    write (*,*) 'Genome size= ',lgen\
+    alpha2=lgen*alpha0\
+!   scaled mutation rate for whole genome\
+    write (1,*) 'alpha2= ',alpha2\
+    write (*,*) 'alpha2= ',alpha2\
+    write (1,*) 'Initial B value= ',B1\
+    write (1,*) ''\
+    write (*,*) 'Initial B value= ',B1\
+    write (*,*) ''\
+\
+    X=alpha2*(gamm**2)/((1+kappa*gamm)**3)\
+    write(*,*) 'X =',X\
+    B0=1-X/(1+3*X)\
+    write(1,*) 'Linear approximation to B (small gamma)=',B0\
+    write(1,*) ''\
+    write(*,*) 'Linear approximation to B (small gamma)=',B0\
+    write(*,*) ''\
+\
+    do 20 i=1,nmax\
+    gamexp=exp(0.0-B1*gamm)\
+    f1=1-gamexp\
+    f2=1+kappa*gamexp\
+    R=alpha2/gamm\
+    g=((f1/f2)**3)*R\
+    f0=log(B1)+g\
+    df0=(1.0/B1)+(1.5*alpha2)*(1+kappa)*gamexp*(f1**2)/(f2**4)\
+    df1=abs(df0)\
+    \
+    if(df1.le.f0) then\
+    df0=10*df0\
+    end if\
+\
+    write(*,*)\
+    write (*,*) 'i= ',i,' g= ',g,' f0= ',f0,' df0= ',df0\
+    B2=B1-f0/df0\
+    write (*,*) 'B= ',B2\
+    del=(B1-B2)/B1\
+    del1=abs(del)\
+    if(del1.le.0.00001) go to 30\
+    if(i.ge.nmax) go to 40\
+    B1=B2\
+20  continue\
+    \
+40  write (1,*) ''\
+    write (1,*) 'Iteration does not converge'\
+    write (1,*) 'del= ',del,' f= ',fo\
+    write (1,*) ''\
+    write (1,*) 'BC approximations'\
+    B1=B2\
+    gamexp=exp(0.0-B1*gamm)\
+    p=1.0/(1+kappa*gamexp)\
+    pi1=2*(alpha0/gamm)*(1.0-gamexp)/(1.0+kappa*gamexp)\
+    pi0=2*(alpha0/gamm)*(1.0-exp(0.0-gamm))/(1.0+kappa*exp(0.0-gamm))\
+    pi2=pi1/pi0\
+    write (1,*) 'Predicted mean p= ',p\
+    write (1,*) 'B= ',B1\
+    write (1,*) 'Predicted pi= ',pi1,' Ratio wrt free rec. value= ',pi2\
+    write (*,*) 'Iteration does not converge'\
+    write (*,*) 'del= ',del,' f= ',fo\
+    write (*,*) ''\
+    write (*,*) 'BC approximations'\
+    write (*,*) 'Predicted mean p= ',p\
+    write (*,*) 'B= ',B1\
+    write (*,*) 'Predicted pi= ',pi1,' Ratio wrt free rec. value= ',pi2\
+    write (1,*) ''\
+    B11=B1\
+\
+    write (1,*) 'Devi et al. approximations'\
+    B10=(gamm**0.333)*(alpha2**0.333)\
+    B1=((16*(1+kappa))**0.333)/B10\
+\
+    if(B1.ge.1.0) then\
+    B1=1.0\
+    end if\
+    gamexp=exp(0.0-B1*gamm)\
+    write (1,*) 'Without phimax'\
+\
+    p=1.0/(1+kappa*gamexp)\
+    pi1=2*(alpha0/gamm)*(1.0-gamexp)/(1.0+kappa*gamexp)\
+    pi0=2*(alpha0/gamm)*(1.0-exp(0.0-gamm))/(1.0+kappa*exp(0.0-gamm))\
+    pi2=pi1/pi0\
+    write (1,*) ''\
+    write (1,*) 'Predicted mean p= ',p\
+    write (1,*) 'B= ',B1\
+    write (1,*) 'Predicted pi= ',pi1,' Ratio wrt free rec. value= ',pi2\
+    write (1,*) ''\
+    u01=u/kappa\
+    phimax=1/(1+gamm/log(1+(s/u01)))\
+    B1=B1*phimax**0.3333\
+\
+    if(B1.ge.1.0) then\
+    B1=1.0\
+    end if\
+\
+    gamexp=exp(0.0-B1*gamm)\
+    p=1.0/(1+kappa*gamexp)\
+    pi1=2*(alpha0/gamm)*(1.0-gamexp)/(1.0+kappa*gamexp)\
+    pi0=2*(alpha0/gamm)*(1.0-exp(0.0-gamm))/(1.0+kappa*exp(0.0-gamm))\
+    pi2=pi1/pi0\
+    write (1,*) 'With phimax'\
+    write (1,*) 'Predicted mean p= ',p\
+    write (1,*) 'B= ',B1\
+    write (1,*) 'Predicted pi= ',pi1,' Ratio wrt free rec. value= ',pi2\
+    write (1,*) ''\
+\
+    go to 50\
+\
+30  write (1,*) ''\
+    write (1,*) 'Iteration complete'\
+    write (1,*) 'Number of steps= ',i\
+    write (1,*) 'del= ',del,' f= ',fo\
+    write (1,*) ''\
+\
+    B1=B2\
+    gamexp=exp(0.0-B1*gamm)\
+    p=1.0/(1+kappa*gamexp)\
+    pi1=2*(alpha0/gamm)*(1.0-gamexp)/(1.0+kappa*gamexp)\
+    pi0=2*(alpha0/gamm)*(1.0-exp(0.0-gamm))/(1.0+kappa*exp(0.0-gamm))\
+    pi2=pi1/pi0\
+    write (1,*) 'BC approximations'\
+    write (1,*) 'Predicted mean p= ',p\
+    write (1,*) 'B= ',B1\
+    write (1,*) 'Predicted pi= ',pi1,' Ratio wrt free rec. value= ',pi2\
+    write (1,*) ''\
+\
+    write (*,*) 'Iteration complete'\
+    write (*,*) 'Number of steps= ',i\
+    write (*,*) 'BC approximations'\
+    write (*,*) 'Predicted mean p= ',p\
+    write (*,*) 'B= ',B1\
+    write (*,*) 'Predicted pi= ',pi1,' Ratio wrt free rec. value= ',pi2\
+    write (*,*) ''\
+    B11=B1\
+    write (1,*) 'Devi et al. approximations'\
+\
+    B10=(gamm**0.333)*(alpha2**0.333)\
+    B1=((16*(1+kappa))**0.333)/B10\
+    if(B1.ge.1.0) then\
+    B1=1.0\
+    end if\
+    \
+    gamexp=exp(0.0-B1*gamm)\
+    p=1.0/(1+kappa*gamexp)\
+    pi1=2*(alpha0/gamm)*(1.0-gamexp)/(1.0+kappa*gamexp)\
+    pi0=2*(alpha0/gamm)*(1.0-exp(0.0-gamm))/(1.0+kappa*exp(0.0-gamm))\
+    pi2=pi1/pi0\
+    write (*,*) ''\
+    write (1,*) 'Without phimax'\
+    write (1,*) 'Predicted mean p= ',p\
+    write (1,*) 'B= ',B1\
+    write (1,*) 'Predicted pi= ',pi1,' Ratio wrt free rec. value= ',pi2\
+    write (1,*) ''\
+    u01=u/kappa\
+\
+    phimax=1/(1+gamm/log(1+(s/u01)))\
+    B1=B1*phimax**0.3333\
+    if(B1.ge.1.0) then\
+    B1=1.0\
+    end if\
+\
+    gamexp=exp(0.0-B1*gamm)\
+    p=1.0/(1+kappa*gamexp)\
+    pi1=2*(alpha0/gamm)*(1.0-gamexp)/(1.0+kappa*gamexp)\
+    pi0=2*(alpha0/gamm)*(1.0-exp(0.0-gamm))/(1.0+kappa*exp(0.0-gamm))\
+    pi2=pi1/pi0\
+    write (1,*) 'With phimax'\
+    write (1,*) 'Predicted mean p= ',p\
+    write (1,*) 'B= ',B1\
+    write (1,*) 'Predicted pi= ',pi1,' Ratio wrt free rec. value= ',pi2\
+    write (1,*) ''\
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\
+!   section for calculation of coalescence Ne\
+50  vavm=0.5*gamm*B11*f2/f1\
+!   mutational variance over variance, scaled by B*N\
+    va3vm2=(alpha2/gamm)*(f1/f2)**3\
+!   ratio (Va**3)/(Vm**2), where Va is the additive variance\
+        \
+    call asum1(ainteg1,nsimp,va3vm2,vavm,B11,Tmax)\
+!   subroutine to calculate coalescence Ne\
+    B3=ainteg1*B11\
+    write (1,*) ''\
+    write (1,*) 'Coalescence B value= ',B3\
+    write (1,*) ''\
+    write (*,*) ''\
+    write (*,*) 'Coalescence B value= ',B3\
+    write (*,*) ''\
+    \
+    go to 10\
+100 end program hrihap5\
+\
+    subroutine asum1(ainteg1,nsimp,va3vm2,vavm,B,x2)\
+!   uses Simpson's rule by calling another integral\
+    real :: f(300),x,x2,F1,DX,ans,ainteg1,ainteg2,B,va3vm2,vavm\
+    integer :: nsimp,N1,i,j\
+!   write(*,*) 'Simpson integration'\
+!   write(*,*) 'asum1 entered'\
+\
+    ans=nsimp\
+    DX=x2/ans\
+    j=0\
+    N1=nsimp+1\
+    asum=0.0\
+!   write(*,*) 'DX',DX\
+    do 50 i=1,N1\
+    x=(i-1)*DX\
+\
+    if(i.eq.1) then\
+    F1=0\
+    go to 50\
+    end if\
+    \
+    call asum2(ainteg2,nsimp,va3vm2,vavm,x)\
+    f(i)=exp(-B*ainteg2)\
+    F1=f(i)\
+!   write(*,*) 'i= ',i,'x= ',x,' f= ',F1\
+\
+40  if(i.eq.N1) then\
+    F1=f(N1)\
+    asum=asum+F1\
+    go to 60\
+    end if\
+\
+        if(j.eq.0) then\
+    asum=asum+4*F1\
+        j=1\
+        else\
+    asum=asum+2*F1\
+        j=0\
+        end if\
+50        continue\
+\
+60  ainteg1=DX*asum/(3.0)\
+!   write(*,*) 'ainteg1=',ainteg1\
+    end subroutine asum1\
+\
+    subroutine asum2(ainteg2,nsimp,va3vm2,vavm,x2)\
+!   uses Simpson's rule with integrand calculated internally\
+    real :: f(300),x,x1,x2,F1,DX,ans,va3vm2,vavm,ainteg2\
+    integer :: nsimp,N1,i,j\
+!   write(*,*) 'Simpson integration'\
+!   write(*,*) ''\
+!   write(*,*) 'asum2 is entered'\
+!   write(*,*) ''\
+    ans=nsimp\
+    DX=x2/ans\
+    j=0\
+    N1=nsimp+1\
+    asum=0.0\
+!   write(*,*) 'DX',DX\
+!   write(*,*) 'vavm,va3vm2= ',vavm,va3vm2\
+    do 50 i=1,N1\
+    x=(i-1)*DX\
+    g=(1-exp(-x*vavm))**2\
+    f(i)=exp(va3vm2*g)\
+    F1=f(i)\
+!   write(*,*) 'i= ',i,'x= ',x,' f= ',F1\
+\
+40  if(i.eq.N1) then\
+    F1=f(N1)\
+    asum=asum+F1\
+    go to 60\
+    end if\
+\
+    if(i.eq.1) then\
+    asum=F1\
+    go to 50\
+    end if\
+    if(j.eq.0) then\
+    asum=asum+4*F1\
+    j=1\
+    else\
+    asum=asum+2*F1\
+    j=0\
+    end if\
+50  continue\
+\
+60  ainteg2=DX*asum/(3.0)\
+!   write(*,*) 'ainteg2=',ainteg2\
+\
+    end subroutine asum2\
+\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f1\b\fs28 \cf2    Program for HRI with no recombination; calculations of tree properties using numerical integration (our Table 2)
+\f0\b0\fs22 \
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+\cf2 \
+    program hrihap13a\
+!   constant mutation rate\
+!   several genome sizes allowed\
+!   neutral diversity Ne calculated\
+!   time course of neutral Ne calculated\
+!   neutral gene tree length using Monte Carlo integration\
+    double precision :: s,u,gamm,alpha0,kappa,B,f,x1,x2,va3vm2,va3vm21,vg,vavm,vavm1,B1,B11,B10\
+    double precision :: Tmax,tb(100),Nt,Tl,aw,aw2,kd,Sk,Dt,vavm2,Dtc,Skc,Tlc,rc1,qb(100)\
+    double precision :: ainteg1,ainteg2,Tj,T(100),rc(100),akd,u1,Tlbar,seTl,chistat\
+    double precision :: gamexp,f1,f2,R1,g,r0,df0,df1,alpha2,B2,del,del1,T2,rc2,z,Tln\
+    real :: r,pic\
+    integer :: lgen,nmax,N,nsimp,nint,ntimes,ks,ks1\
+\
+    CHARACTER*20 FINP\
+    CHARACTER*20 FOUT\
+\
+    WRITE (*,*) 'Input file?'\
+    READ (*,*) FINP\
+    OPEN (2,FILE=FINP)\
+    WRITE (*,*) 'Output file?'\
+    READ (*,*) FOUT\
+    OPEN (1,FILE=FOUT)\
+    write (1,*) 'Hill-Robertson interference with no recombination and haploidy'\
+    write (1,*) 'Testing against Devi et al results with constant mutation rate'\
+    write (1,*) 'Coalescence Ne calculated, with time course of Ne'\
+    write (1,*) 'Gene tree lengths and SFS calculated using Monte Carlo integration'\
+    write (1,*) ''\
+\
+    READ (2,*) s\
+    READ (2,*) u\
+    READ (2,*) kappa\
+    READ (2,*) N\
+    READ (2,*) nmax\
+    READ (2,*) nsimp\
+    READ (2,*) nint\
+    READ (2,*) Tmax\
+    READ (2,*) ntimes\
+    READ (2,*) nrep\
+    \
+    write (*,*) 'Sample size?'\
+    read  (*,*) ks\
+\
+    AN=N\
+    gamm=2*N*s\
+    alpha0=2*N*u\
+    \
+    write (1,*) 's= ',s,' N= ',N\
+    write (1,*) 'Scaled selection strength (2Ns)= ',gamm\
+    write (1,*) 'u= ',u\
+    write (1,*) 'Scaled mutation rate to deleterious variants (2Nu)= ',alpha0\
+    write (1,*) 'Mutational bias towards deleterious variants= ',kappa\
+    write (1,*) 'Maximum number of NR iterations= ',nmax\
+    write (1,*) 'Number of points for Simpson integrations= ',nsimp\
+    write (1,*) 'Number of points for simple integrations= ',nint\
+    write (1,*) 'Upper limit to outer integration= ',Tmax\
+    write (1,*) 'Number of times in the past for Ne calculations= ',ntimes\
+    write (1,*) 'Number of replicates= ',nrep\
+    write (1,*) ''\
+\
+    write (*,*) 's= ',s,' N= ',N\
+    write (*,*) 'Scaled selection strength (2Ns)= ',gamm\
+    write (*,*) 'u= ',u\
+    write (*,*) 'Scaled selection strength= ',gamm\
+    write (*,*) 'Scaled mutation rate to deleterious variants = ',alpha0\
+    write (*,*) 'Mutational bias towards deleterious variants= ',kappa\
+    write (*,*) 'Maximum number of iterations= ',nmax\
+    write (*,*) 'Number of points for Simpson integrations= ',nsimp\
+    write (*,*) 'Number of points for simple integrations= ',nint\
+    write (*,*) 'Upper limit to outer integration= ',Tmax\
+    write (*,*) 'Number of replicates= ',nrep\
+    write (*,*) ''\
+\
+    ks1=ks-1\
+    aw=0\
+    aw2=0\
+    do 5 i=1,ks1\
+    ai=i\
+    aw=aw+1.0/ai\
+    aw2=aw2+1.0/(ai**2)\
+5   continue\
+    aks=ks\
+    dthmax=1-2*aw/aks\
+    write (1,*) 'Sample size= ',ks,' Watterson correction factor= ',aw\
+    write (1,*) 'Maximum value of delta-theta-w= ',dthmax\
+    write (1,*) 'Tajima a2= ',aw2\
+    write (1,*) ''\
+\
+    write (*,*) 'Sample size= ',ks,' Watterson correction factor= ',aw\
+    write (*,*) ''\
+\
+    write (*,*) 'CONT?'\
+    read (*,*) CONT\
+!   allows program to be cancelled if desired\
+    if(CONT.eq.1) go to 100\
+    \
+    do 15 i=1,ntimes\
+    read (2,*) tb(i)\
+15  continue\
+!   reads times for which past Ne is calculated\
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\
+10  write (*,*) 'Genome size?'\
+    read (*,*) lgen\
+    write (*,*) 'Is neutral coalescent needed? Then enter 0'\
+    read (*,*) ineut\
+    write (*,*) 'Initial B value?'\
+    read (*,*) B1\
+    write (1,*) ''\
+    write (1,*) ''\
+    write (1,*) 'Genome size= ',lgen\
+    write (*,*) 'Genome size= ',lgen\
+    alpha2=lgen*alpha0\
+!   scaled mutation rate for whole genome\
+    write (1,*) 'alpha2= ',alpha2\
+    write (*,*) 'alpha2= ',alpha2\
+    write (1,*) 'Initial B value= ',B1\
+    write (1,*) ''\
+    write (*,*) 'Initial B value= ',B1\
+    write (*,*) ''\
+\
+    X=alpha2*(gamm**2)/((1+kappa*gamm)**3)\
+    write(*,*) 'X =',X\
+    B0=1-X/(1+3*X)\
+    write(1,*) 'Linear approximation to B (small gamma)=',B0\
+    write(1,*) ''\
+    write(*,*) 'Linear approximation to B (small gamma)=',B0\
+    write(*,*) ''\
+\
+    do 20 i=1,nmax\
+    gamexp=dexp(0.0-B1*gamm)\
+    f1=1-gamexp\
+    f2=1+kappa*gamexp\
+    R1=alpha2/gamm\
+    g=((f1/f2)**3)*R1\
+    f0=log(B1)+g\
+    df0=(1.0/B1)+(1.5*alpha2)*(1+kappa)*gamexp*(f1**2)/(f2**4)\
+    df1=abs(df0)\
+    \
+    if(df1.le.f0) then\
+    df0=10*df0\
+    end if\
+\
+    write(*,*)\
+    write (*,*) 'i= ',i,' g= ',g,' f0= ',f0,' df0= ',df0\
+    B2=B1-f0/df0\
+    write (*,*) 'B= ',B2\
+    del=(B1-B2)/B1\
+    del1=abs(del)\
+    if(del1.le.0.00001) go to 30\
+    if(i.ge.nmax) go to 40\
+    B1=B2\
+20  continue\
+    \
+40  write (1,*) ''\
+    write (1,*) 'Iteration does not converge'\
+    write (1,*) 'del= ',del,' f= ',fo\
+    write (1,*) ''\
+    write (1,*) 'BC approximations'\
+    B1=B2\
+\
+    gamexp=exp(0.0-B1*gamm)\
+    pn=1.0/(1+kappa*exp(0.0-gamm))\
+    p=1.0/(1+kappa*gamexp)\
+    rp=p/pn\
+    pi1=2*(alpha0/gamm)*(1.0-gamexp)/(1.0+kappa*gamexp)\
+    pi0=2*(alpha0/gamm)*(1.0-exp(0.0-gamm))/(1.0+kappa*exp(0.0-gamm))\
+    pi2=pi1/pi0\
+ \
+    vg=lgen*u*s*f1/f2\
+!   genetic variance\
+    vavm1=(f2/f1)*s\
+!   ratio of mutational variance to genetic variance\
+\
+    write (1,*) 'Predicted mean p= ',p\
+    write (1,*) 'Mean p without HR= ',pn,' p/p-neutral= ',rp\
+    write (1,*) 'B= ',B1\
+    write (1,*) 'Predicted pi= ',pi1,' Ratio wrt free rec. value= ',pi2\
+    write (1,*) 'vg= ',vg,'reciprocal of ratio to mutational variance= ',vavm1\
+    write (1,*) ''\
+    write (*,*) 'Iteration does not converge'\
+    write (*,*) 'del= ',del,' f= ',fo\
+    write (*,*) ''\
+    write (*,*) 'BC approximations'\
+    write (*,*) 'Predicted mean p= ',p\
+    write (*,*) 'B= ',B1\
+    write (*,*) 'Predicted pi= ',pi1,' Ratio wrt free rec. value= ',pi2\
+    write (*,*) 'vg= ',vg,'reciprocal of ratio to mutational variance= ',vavm1\
+    write (*,*) ''\
+    \
+    B11=B1\
+    write (1,*) 'Devi et al. approximations'\
+    B10=(gamm**0.333)*(alpha2**0.333)\
+    B1=((16*(1+kappa))**0.333)/B10\
+\
+    if(B1.ge.1.0) then\
+    B1=1.0\
+    end if\
+    gamexp=exp(0.0-B1*gamm)\
+    write (1,*) 'Without phimax'\
+\
+    p=1.0/(1+kappa*gamexp)\
+    pi1=2*(alpha0/gamm)*(1.0-gamexp)/(1.0+kappa*gamexp)\
+    pi0=2*(alpha0/gamm)*(1.0-exp(0.0-gamm))/(1.0+kappa*exp(0.0-gamm))\
+    pi2=pi1/pi0\
+    u01=u/kappa\
+    write (1,*) ''\
+    write (1,*) 'Predicted mean p= ',p\
+    write (1,*) 'B= ',B1\
+    write (1,*) 'Predicted pi= ',pi1,' Ratio wrt free rec. value= ',pi2\
+    write (1,*) ''\
+    phimax=1/(1+gamm/log(1+(s/u01)))\
+    B1=B1*phimax**0.3333\
+\
+    if(B1.ge.1.0) then\
+    B1=1.0\
+    end if\
+\
+    gamexp=exp(0.0-B1*gamm)\
+    p=1.0/(1+kappa*gamexp)\
+    pi1=2*(alpha0/gamm)*(1.0-gamexp)/(1.0+kappa*gamexp)\
+    pi0=2*(alpha0/gamm)*(1.0-exp(0.0-gamm))/(1.0+kappa*exp(0.0-gamm))\
+    pi2=pi1/pi0\
+    write (1,*) 'With phimax'\
+    write (1,*) 'Predicted mean p= ',p\
+    write (1,*) 'B= ',B1\
+    write (1,*) 'Predicted pi= ',pi1,' Ratio wrt free rec. value= ',pi2\
+    write (1,*) ''\
+    B11=B1\
+    go to 50\
+    \
+30  write (1,*) ''\
+    write (1,*) 'Iteration complete'\
+    write (1,*) 'Number of steps= ',i\
+    write (1,*) 'del= ',del,' f= ',fo\
+    write (1,*) ''\
+\
+    B1=B2\
+    gamexp=exp(0.0-B1*gamm)\
+    p=1.0/(1+kappa*gamexp)\
+    pi1=2*(alpha0/gamm)*(1.0-gamexp)/(1.0+kappa*gamexp)\
+    pi0=2*(alpha0/gamm)*(1.0-exp(0.0-gamm))/(1.0+kappa*exp(0.0-gamm))\
+    pi2=pi1/pi0\
+    vg=lgen*u*s*f1/f2\
+!   genetic variance\
+    vavm1=(f2/f1)*s\
+!   ratio of mutational variance to genetic variance\
+\
+    write (1,*) 'BC approximations'\
+    write (1,*) 'Predicted mean p= ',p\
+    write (1,*) 'B= ',B1\
+    write (1,*) 'Predicted pi= ',pi1,' Ratio wrt free rec. value= ',pi2\
+    write (1,*) 'vg= ',vg,' reciprocal of ratio to mutational variance= ',vavm1\
+    write (1,*) ''\
+\
+    write (*,*) 'Iteration complete'\
+    write (*,*) 'Number of steps= ',i\
+    write (*,*) 'BC approximations'\
+    write (*,*) 'Predicted mean p= ',p\
+    write (*,*) 'B= ',B1\
+    write (*,*) 'Predicted pi= ',pi1,' Ratio wrt free rec. value= ',pi2\
+    write (*,*) 'vg= ',vg,' reciprocal of ratio to mutational variance= ',vavm1\
+    write (*,*) ''\
+    B11=B1\
+    write (1,*) 'Devi et al. approximations'\
+\
+    B10=(gamm**0.333)*(alpha2**0.333)\
+    B1=((16*(1+kappa))**0.333)/B10\
+    if(B1.ge.1.0) then\
+    B1=1.0\
+    end if\
+    \
+    gamexp=exp(0.0-B1*gamm)\
+    p=1.0/(1+kappa*gamexp)\
+    pi1=2*(alpha0/gamm)*(1.0-gamexp)/(1.0+kappa*gamexp)\
+    pi0=2*(alpha0/gamm)*(1.0-exp(0.0-gamm))/(1.0+kappa*exp(0.0-gamm))\
+    pi2=pi1/pi0\
+    write (1,*) ''\
+    write (1,*) 'Without phimax'\
+    write (1,*) 'Predicted mean p= ',p\
+    write (1,*) 'B= ',B1\
+    write (1,*) 'Predicted pi= ',pi1,' Ratio wrt free rec. value= ',pi2\
+    write (1,*) ''\
+    write (*,*) 'Devi et al. approximations'\
+    write (*,*) ''\
+    write (*,*) 'Without phimax'\
+    write (*,*) 'Predicted mean p= ',p\
+    write (*,*) 'B= ',B1\
+    write (*,*) 'Predicted pi= ',pi1,' Ratio wrt free rec. value= ',pi2\
+    write (*,*) ''\
+    u01=u/kappa\
+\
+    phimax=1/(1+gamm/log(1+(s/u01)))\
+    B1=B1*phimax**0.3333\
+    if(B1.ge.1.0) then\
+    B1=1.0\
+    end if\
+\
+    gamexp=exp(0.0-B1*gamm)\
+    p=1.0/(1+kappa*gamexp)\
+    pi1=2*(alpha0/gamm)*(1.0-gamexp)/(1.0+kappa*gamexp)\
+    pi0=2*(alpha0/gamm)*(1.0-exp(0.0-gamm))/(1.0+kappa*exp(0.0-gamm))\
+    pi2=pi1/pi0\
+    write (1,*) 'With phimax'\
+    write (1,*) 'Predicted mean p= ',p\
+    write (1,*) 'B= ',B1\
+    write (1,*) 'Predicted pi= ',pi1,' Ratio wrt free rec. value= ',pi2\
+    write (1,*) ''\
+    write (*,*) ''\
+    write (*,*) 'With phimax'\
+    write (*,*) 'Predicted mean p= ',p\
+    write (*,*) 'B= ',B1\
+    write (*,*) 'Predicted pi= ',pi1,' Ratio wrt free rec. value= ',pi2\
+    write (*,*) ''\
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\
+!   section for calculation of coalescence Ne\
+50  vavm=0.5*gamm*B11*f2/f1\
+!   mutational variance over variance, scaled by B*N\
+    va3vm2=(alpha2/gamm)*(f1/f2)**3\
+!   ratio (Va**3)/(Vm**2), where Va is the additive variance\
+    write (*,*) 'vavm=',vavm,' va3vm2= ',va3vm2\
+    call asum1(ainteg1,nsimp,va3vm2,vavm,B11,Tmax)\
+!   subroutine to calculate coalescence Ne\
+    B3=ainteg1*B11\
+    write (1,*) ''\
+    write (1,*) 'Coalescence B value= ',B3\
+    write (1,*) ''\
+    write (*,*) ''\
+    write (*,*) 'Coalescence B value= ',B3\
+    write (*,*) ''\
+ \
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\
+!   section for calculation of changes in Ne\
+    write (1,*) 'Changes in Ne over time'\
+    do 60 i=1,ntimes\
+    Qt=(1-(1-vavm1)**(tb(i)+1))/vavm1\
+    Nt=N*exp(0.0-vg*Qt**2)\
+    tb1=tb(i)\
+    write (1,*) 'Time from present= ',tb1\
+    write (1,*) 'Ne= ',Nt\
+60  continue\
+\
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\
+!   section for calculation of gene tree length statistics\
+    write (1,*) ''\
+    write (1,*) 'Gene tree statistics'\
+    write (1,*) ''\
+    write (1,*) 'Background selection case'\
+\
+    call treel2(ks,nsimp,nint,nrep,va3vm2,vavm,B11,Tmax,Tlbar,seTl,pic,aw,chistat)\
+    Tlbar=B11*Tlbar\
+    seTl=B11*seTl\
+    write (1,*) ''\
+    write (1,*) 'Expected tree size (scaled by N0)= ',Tlbar,' s.e.= ',seTl\
+    T2=2*B3\
+    write (1,*) 'Expected pairwise tree size (scaled by N0)= ',T2\
+    deltw=1.0-T2*aw/Tlbar\
+    deltwp=deltw/dthmax\
+    sedtw=T2*aw*seTl/Tlbar**2\
+    sedtwp=sedtw/dthmax\
+    write (1,*) ''\
+    write (1,*) 'Delta-theta-w= ',deltw,' s.e.= ',sedtw\
+    write (1,*) 'Delta-theta-w-prime=',deltwp,' s.e.= ',sedtwp\
+    write (1,*) 'Conditional pairwise diversity= ',pic\
+    deltw1=1-aw*pic\
+    deltw1p=deltw1/dthmax\
+    write (1,*) 'Delta-theta-w from SSF=',deltw1\
+    write (1,*) 'Delta-theta-w-prime from SSF=',deltw1p\
+    write (1,*) ''\
+    write (1,*) 'chi-squared statistic= ',chistat\
+    write (1,*) ''\
+\
+    u1=2*u*kappa/(1.0+kappa)\
+!   net mutation rate\
+    Sk=lgen*Tlbar*N*u1\
+!   expected number of neutral segregating sites in sample of size ks with lgen sites\
+    akd=lgen*T2*N*u1\
+!   expected number of neutral pairwise differences\
+    write (1,*) 'No. of pairwise differences=',akd,' No. of segregating sites= ',Sk\
+    call TajD(aw,aw2,ks,akd,Sk,Dt)\
+    write (1,*) 'Tajima D statistic= ',Dt\
+    write (1,*) ''\
+\
+    if(ineut.eq.0) then\
+    va3vm21=0\
+    vavm2=0\
+    B10=1.0\
+    write (1,*) 'Neutral case'\
+    call treel2(ks,nsimp,nint,nrep,va3vm21,vavm2,B10,Tmax,Tln,seTL,pic,aw,chistat)\
+!   calculation of tree length in absence of selection\
+    write (1,*) ''\
+    write (1,*) 'Conditional pairwise diversity= ',pic\
+    deltw1=1-aw*pic\
+    deltw1p=deltw1/dthmax\
+    write (1,*) 'Delta-theta-w from SSF=',deltw1\
+    write (1,*) 'Delta-theta-w-prime from SSF=',deltw1p\
+    write (1,*) ''\
+    write (1,*) 'chi-squared statistic= ',chistat\
+    end if\
+\
+    write (*,*) 'Run ended'\
+\
+100 end program hrihap13a\
+\
+    subroutine asum1(ainteg1,nsimp,va3vm2,vavm,B,x2)\
+!   uses Simpson's rule by calling another integral\
+    double precision :: f(2000),x,x2,F1,DX,ans,ainteg1,ainteg2,B,va3vm2,vavm,asum\
+    integer :: nsimp,N1,i,j\
+!   write(*,*) 'Simpson integration'\
+!   write(*,*) 'asum1 entered'\
+!   x2 is upper limit to scaled coalescent time\
+\
+    ans=nsimp\
+    DX=x2/ans\
+    j=0\
+    N1=nsimp+1\
+    asum=0.0\
+!   write(*,*) 'DX',DX\
+    do 50 i=1,N1\
+    x=(i-1)*DX\
+\
+    if(i.eq.1) then\
+    F1=1\
+    asum=F1\
+    go to 50\
+    end if\
+    \
+    call asum2(ainteg2,nsimp,va3vm2,vavm,x)\
+    f(i)=dexp(-B*ainteg2)\
+    F1=f(i)\
+!   write(*,*) 'i= ',i,'x= ',x,' f= ',F1\
+\
+40  if(i.eq.N1) then\
+    F1=f(N1)\
+    asum=asum+F1\
+    go to 60\
+    end if\
+\
+        if(j.eq.0) then\
+    asum=asum+4*F1\
+        j=1\
+        else\
+    asum=asum+2*F1\
+        j=0\
+        end if\
+50        continue\
+\
+60  ainteg1=DX*asum/(3.0)\
+!   write(*,*) 'ainteg1=',ainteg1\
+    end subroutine asum1\
+\
+    subroutine asum2(ainteg2,nsimp,va3vm2,vavm,x2)\
+!   calculates probability of no coalescence over time x2\
+    double precision :: f(2000),x,x1,x2,F1,DX,ans,va3vm2,vavm,ainteg2,asum,g\
+    integer :: nsimp,N1,i,j\
+!   write(*,*) 'Simpson integration'\
+\
+!   write(*,*) ''\
+!   write(*,*) 'asum2 is entered'\
+!   write(*,*) ''\
+    ans=nsimp\
+    DX=x2/ans\
+    j=0\
+    N1=nsimp+1\
+    asum=0.0\
+!   write(*,*) 'DX for asum2',DX\
+!   write(*,*) 'vavm,va3vm2= ',vavm,va3vm2\
+    do 50 i=1,N1\
+    x=(i-1)*DX\
+    g=(1-dexp(0.0-x*vavm))**2\
+    f(i)=dexp(va3vm2*g)\
+    F1=f(i)\
+!   write(*,*) 'i= ',i,'x= ',x,' f= ',F1\
+\
+40  if(i.eq.N1) then\
+    F1=f(N1)\
+    asum=asum+F1\
+    go to 60\
+    end if\
+\
+    if(i.eq.1) then\
+    asum=F1\
+    go to 50\
+    end if\
+    if(j.eq.0) then\
+    asum=asum+4*F1\
+    j=1\
+    else\
+    asum=asum+2*F1\
+    j=0\
+    end if\
+50  continue\
+\
+60  ainteg2=DX*asum/(3.0)\
+!   write(*,*) 'ainteg2=',ainteg2\
+\
+    end subroutine asum2\
+\
+\
+    subroutine treel2(k,nsimp,nint,nrep,va3vm2,vavm,B,Tmax,Tlbar,seTL,pic,aw,chistat)\
+!   calculates gene tree statistics by Monte Carlo integration\
+    double precision :: rc(100),T(100),delT(100),TS(100),B,Tl,va3vm2,vavm,Tmax,rc1,Tj,ainteg3\
+    double precision :: f11(2000),f12(2000),x3(2000),x4(2000),rc2,x1,anrep,T1,TlS,TlSS,TSS(100)\
+    double precision :: Tlbar,seTl,Tbar(100),Tvar(100),setT(100),fac(0:100),aic,Sksf,Sbsf\
+    double precision :: ef,qb(100),fac1,fac2,aw,aneut,chistat\
+    real :: pic\
+    integer :: j,k,k1,nsimp,nint,nrep\
+!   k is sample size\
+\
+    anrep=nrep\
+    k1=k-1\
+    do 10 j=1,k1\
+    rc(j)=0.5*(k+1-j)*(k-j)\
+!   multiplier of rate of coalescence with k+1-j alleles present\
+    T(j)=0\
+    TS(j)=0\
+    TSS(j)=0\
+10  continue\
+    TlS=0\
+    TlSS=0\
+!   initialises sum of over runs of tree statistics\
+\
+    j=0\
+    T(1)=0\
+    Tj=0\
+    nrun=0\
+    x1=0\
+    rc1=rc(1)\
+    T1=Tmax/rc1\
+!   reduces upper limit to scaled time by lower bound to scaled rate of coalescence\
+\
+    nrun=0\
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\
+!   starts process by storing integrals of psi-k for 1st coalescent event (j = 1)\
+\
+    call asum7(nsimp,nint,va3vm2,vavm,B,x1,T1,x3,rc1,f11)\
+!   calculates integrals up to x of psi-k+1-j(delta-T given sum of delta-Ts) for whole range of\
+!   values; x1 corresponds to current sum of delta-Ts; this is zero for 1st event\
+!   f11 array stores the integrals of initial psi(delta-T) function and is used in all the runs\
+!   x3 array stores the corresponding upper limits of the integrals\
+\
+100 nrun=nrun+1\
+!   starts new simulation\
+    if(nrun.gt.nrep) go to 140\
+!   write(*,*) ''\
+!   write(*,*) 'Replicate= ',nrun\
+    x1=0\
+    j=0\
+    Tl=0.0\
+20  j=j+1\
+    j1=k+1-j\
+    rc1=rc(j)\
+    T1=Tmax/rc1\
+    \
+!   write(*,*) 'rc1= ',rc1,' T1= ',T1\
+!   reduces upper limit to scaled time by lower bound to scaled rate of coalescence\
+\
+    call random_number(r)\
+    z=r\
+!   write(*,*) 'j= ',j,'Random number= ',z\
+    \
+    if(j.eq.1) then\
+    do 110 i1=1,nint\
+    fx=f11(i1)\
+!   write(*,*) 'i1= ',i1,' x= ',x3(i1),' f11= ',fx\
+    if(z.ge.f11(i1)) go to 110\
+       i2=i1-1\
+       T(1)=(x3(i1)+x3(i2))/2.0\
+!  estimates T value as midpoint of last 2 x values corresponding to f11(x)\
+       go to 112\
+110 continue\
+\
+112 x1=T(1)\
+!   sets 1st delTa-T\
+!   write(*,*) 'T(1)=',T(1)\
+    TS(1)=TS(1)+T(1)\
+    TSS(1)=TSS(1)+T(1)**2\
+!   sum and sum of squares over replicates of delta-T(1)\
+    \
+        if(k.eq.2) then\
+        Tl=2*T(1)\
+        go to 125\
+!   deals with case of only two initial alleles\
+        else\
+        go to 20\
+        end if\
+    end if\
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\
+!   section for 2nd and later coalescent events\
+\
+    call asum7(nsimp,nint,va3vm2,vavm,B,x1,T1,x4,rc1,f12)\
+!   calculates integrals up to x of psi-k-1(delta-T given sum of delta-Ts) for range of x values; x1 corresponds to sum of delta-Ts\
+!   f12 array stores the integrals of initial psi(delta-T) function for this j value and is used only once\
+!   x4 array stores the corresponding upper limits of the integrals\
+\
+    do 115 i2=1,nint\
+    fx=f12(i2)\
+!   write(*,*) 'i2= ',i2,' x= ',x4(i2),' f12= ',fx\
+    if(z.ge.f12(i2)) go to 115\
+        i3=i2-1\
+        T(j)=(x4(i2)+x4(i3))/2.0\
+!  estimates T value as midpoint of last 2 x values corresponding to f11(x)\
+        go to 117\
+115 continue\
+!   sets jth delTa-T\
+\
+117 TS(j)=TS(j)+T(j)\
+    TSS(j)=TSS(j)+T(j)**2\
+!   accumulates sums and sums of squares over replicates of delta-T values\
+    x1=x1+T(j)\
+!   T2=T(j)\
+!   write(*,*) 'j= ',j,' T(j)= ',T2,' Total time= ',x1\
+!   accumulates total time to jth coalescent event for given replicate\
+    \
+    if(j.eq.k1) then\
+    do 130 j2=1,k1\
+    Tl=Tl+(k+1-j2)*T(j2)\
+!   tree size for this replicate\
+130 continue\
+\
+125 TlS=TlS+Tl\
+    TlSS=TlSS+Tl**2\
+    go to 100\
+    end if\
+\
+    go to 20\
+    \
+140 Tlbar=TlS/anrep\
+    Tlvar=TlSS-(TlS**2)/anrep\
+    Tlvar=Tlvar/(anrep*(anrep-1))\
+    seTl=sqrt(Tlvar)\
+    \
+    write(1,*) ''\
+    write(1,*) 'Tree statistics'\
+    write(1,*) 'Mean tree length= ',Tlbar,' s.e.= ',seTl\
+    write(1,*) ''\
+    write(1,*) 'Branch lengths'\
+    do 150 i=1,k1\
+    Tbar(i)=TS(i)/anrep\
+    Tvar(i)=TSS(i)-(TS(i)**2)/anrep\
+    Tvar(i)=Tvar(i)/(anrep*(anrep-1))\
+    setT(i)=sqrt(Tvar(i))\
+    write(1,*) 'Branch ',i,' Mean length= ',Tbar(i),' s.e.= ',setT(i)\
+150 continue\
+    write(1,*) ''\
+    \
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\
+!   calculates site frequency spectrum using Griffiths & Tavare expression\
+    fac(0)=0\
+    do 35 ic=1,k\
+    ic1=ic-1\
+    aic=ic\
+    fac(ic)=fac(ic1)+dlog(aic)\
+35  continue\
+!   calculates logs of factorials\
+\
+    write(1,*) 'Site frequency spectrum'\
+    pic=0\
+    ak=k-1\
+    chistat=0\
+    do 50 ib=1,k1\
+    ib1=k1-ib\
+    fac1=fac(ib1)-fac(k1)\
+!   write(*,*) 'ib',ib,'fac1=',fac1\
+!   log of common factorial term in SFS expression for ib mutations\
+    \
+    Sbsf=0\
+    k2=k+1-ib\
+    do 60 ksf=2,k2\
+    j=k+1-ksf\
+    ib3=k-ksf\
+    ib2=ib1+2-ksf\
+    fac2=fac(ib3)-fac(ib2)\
+    fac2=fac2+dlog(Tbar(j))\
+!   write(*,*) 'ksf=',ksf,'fac2',fac2\
+    ef=dexp(fac2)*ksf*(ksf-1)\
+!   write(*,*) 'ef',ef\
+    Sbsf=Sbsf+ef\
+60  continue\
+!   write(*,*) 'Sbsf=',Sbsf,Tlbar\
+    qb(ib)=dexp(fac1)*Sbsf/Tlbar\
+    aneut=1.0/(aw*ib)\
+    write(1,*) 'i ',ib,'freq.= ',qb(ib),' neut. expectation= ',aneut\
+    chistat=chistat+((qb(ib)-aneut)**2)/aneut\
+    pic=pic+qb(ib)*ib*(k1-ib)\
+50  continue\
+    pic=2*pic/(ak*(ak-1))\
+!   conditional pairwise diversity\
+    write(1,*) ''\
+\
+30   end subroutine treel2\
+\
+    subroutine asum4(ainteg4,nsimp,va3vm2,vavm,x2,x3)\
+!   calculates component of prob. of no coalescence over scaled time interval x2 starting at scaled time x3\
+    double precision :: f(2000),x,x2,x3,F1,DX,ans,va3vm2,vavm,ainteg4,asum,g\
+    integer :: nsimp,N1,i,j\
+!   write(*,*) 'Simpson integration'\
+!   write(*,*) ''\
+!   write(*,*) 'asum4 is entered'\
+!   write(*,*) 'x3=',x3,' x2=',x2\
+    ans=nsimp\
+    DX=x2/ans\
+    j1=0\
+    N1=nsimp+1\
+    asum=0.0\
+!   write(*,*) 'DX for asum4',DX\
+!   write(*,*) 'asum4;vavm,va3vm2= ',vavm,va3vm2\
+    do 50 i=1,N1\
+    x=x3+(i-1)*DX\
+    g=(1-dexp(0.0-x*vavm))**2\
+    f(i)=dexp(va3vm2*g)\
+    F1=f(i)\
+!   write(*,*) 'i= ',i,'x= ',x,' g= ',g,' f= ',F1\
+\
+40  if(i.eq.N1) then\
+    F1=f(N1)\
+    asum=asum+F1\
+    go to 60\
+    end if\
+\
+    if(i.eq.1) then\
+    asum=F1\
+    go to 50\
+    end if\
+    if(j1.eq.0) then\
+    asum=asum+4*F1\
+    j1=1\
+    else\
+    asum=asum+2*F1\
+    j1=0\
+    end if\
+50  continue\
+\
+60  ainteg4=DX*asum/(3.0)\
+!   write(*,*) 'ainteg4=',ainteg4\
+\
+    end subroutine asum4\
+\
+    \
+    subroutine asum7(nsimp,nint,va3vm2,vavm,B,x1,x2,x3,rcj,f11)\
+!   calculates integrals up to x of psi-k-1(delta-T given sum of delta-Ts) for range of x values; x1 corresponds to sum of delta-Ts\
+!   x2 corresponds to maximum scaled time; x3 array stores upper bounds to integrals\
+    double precision :: f(2000),f11(2000),x3(2000),x1,x,x2,DX,ans,va3vm2,vavm,ainteg6,asum,g\
+    double precision :: B,rcj,ainteg4\
+    integer :: nsimp,nint,N1,i,j\
+!   write(*,*) 'Simple integration'\
+!   write(*,*) ''\
+!   write(*,*) 'asum7 is entered'\
+!   write(*,*) ''\
+    ans=nint\
+    DX=x2/ans\
+    \
+    asum=0.0\
+!   write(*,*) 'DX for asum7',DX\
+    x=0\
+    f11(1)=0\
+    do 50 i=1,nint\
+    i1=i-1\
+    x=(i-0.5)*DX\
+!   takes midpoint of interval size DX as value of x\
+!   this corresponds to X in equation for psi-delta-T\
+    call asum4(ainteg4,nsimp,va3vm2,vavm,x,x1)\
+!   the integration here is from Y=0 to Y=x (x represents delta-T)\
+!   component of prob. of no coal. over time interval delta-T starting at time x1\
+    f(i)=dexp(0-rcj*B*ainteg4)\
+!   write(*,*) 'i=',i,' x=',x,'ainteg4=',ainteg4\
+!   prob. of no coalescence over time interval x1 starting at x\
+    g=(1-dexp(0.0-(x+x1)*vavm))**2\
+    f(i)=rcj*B*dexp(va3vm2*g)*f(i)\
+!   this is psi(x)\
+    x3(i)=x\
+    if(i.eq.1) then\
+    f11(i)=f(i)*DX\
+    else\
+    f11(i)=f11(i1)+f(i)*DX\
+    end if\
+    fx=f(i)*DX\
+    fy=f11(i)\
+!   write (*,*) 'i= ',i,' x= ',x,' f= ',fx,'f11= ',fy\
+50  continue\
+!   integral of psi up to x\
+\
+    end subroutine asum7\
+\
+    subroutine TajD(a1,a2,k,kd,Sk,Dt)\
+!   calculates Tajima D statistic\
+    double precision :: a1,a2,b1,b2,c1,c2,e1,e2,kd,Sk,Dt,fac\
+    integer :: k\
+!   kd is expected number of pairwise differences\
+!   Sk is expected number of segregating sites\
+\
+    b1=(k+1.0)/(3.0*(k-1.0))\
+    b2=2.0*(k*(k+1.0)+3.0)/(9.0*k*(k-1.0))\
+    c1=b1-1.0/a1\
+    c2=b2+(a2/(a1**2))-(k+2.0)/(k*a1)\
+    e1=c1/a1\
+    e2=c2/(a2+a1**2)\
+\
+    fac=Sk*(e1+e2*(Sk-1.0))\
+    Dt=(kd-Sk/a1)/dsqrt(fac)\
+\
+    end subroutine TajD\
+\
+\
+   subroutine init_random_seed()\
+   use iso_fortran_env, only: int64\
+   implicit none\
+   integer, allocatable :: seed(:)\
+   integer :: i, n, un, istat, dt(8), pid\
+   integer(int64) :: t\
+\
+   call random_seed(size = n)\
+   allocate(seed(n))\
+! First try if the OS provides a random number generator\
+   open(newunit=un, file="/dev/urandom", access="stream", &\
+    form="unformatted", action="read", status="old", iostat=istat)\
+   if (istat == 0) then\
+  read(un) seed\
+  close(un)\
+   else\
+  ! Fallback to XOR:ing the current time and pid. The PID is\
+  ! useful in case one launches multiple instances of the same\
+  ! program in parallel.\
+  call system_clock(t)\
+  if (t == 0) then\
+     call date_and_time(values=dt)\
+     t = (dt(1) - 1970) * 365_int64 * 24 * 60 * 60 * 1000 &\
+          + dt(2) * 31_int64 * 24 * 60 * 60 * 1000 &\
+          + dt(3) * 24_int64 * 60 * 60 * 1000 &\
+          + dt(5) * 60 * 60 * 1000 &\
+          + dt(6) * 60 * 1000 + dt(7) * 1000 &\
+          + dt(8)\
+  end if\
+  pid = getpid()\
+  t = ieor(t, int(pid, kind(t)))\
+  do i = 1, n\
+     seed(i) = lcg(t)\
+  end do\
+   end if\
+   call random_seed(put=seed)\
+   contains\
+! This simple PRNG might not be good enough for real work, but is\
+! sufficient for seeding a better PRNG.\
+   function lcg(s)\
+ integer :: lcg\
+ integer(int64) :: s\
+ if (s == 0) then\
+    s = 104729\
+ else\
+    s = mod(s, 4294967296_int64)\
+ end if\
+ s = mod(s * 279470273_int64, 4294967291_int64)\
+ lcg = int(mod(s, int(huge(0), int64)), kind(0))\
+   end function lcg\
+   end subroutine init_random_seed\
+\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f1\b\fs28 \cf2    Program for HRI with no recombination; calculations of population statistics used in our Figure 4
+\f0\b0\fs22 \
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+\cf2     program hrihap20a\
+!   program for hri with no recombination\
+!   constant mutation rate\
+!   several genome sizes allowed\
+!   neutral diversity Ne calculated\
+!   time course of neutral Ne calculated\
+!   neutral gene tree length using Monte Carlo integration\
+    double precision :: s,u,gamm,alpha0,alpha2,kappa,B,f,x1,x2,va3vm2,va3vm21,vg,vavm,vavm1,B1,B11\
+    double precision :: Tmax,ainteg1,pn,rn0,rn1,rn2,p,pineut,pineut1,pi0,pi1,pi2\
+    double precision :: gamexp,f1,f2,R1,r0,df0,df1,B2,del,del1\
+    integer :: lgen,nmax,N,nsimp\
+\
+    CHARACTER*20 FINP\
+    CHARACTER*20 FOUT\
+\
+    WRITE (*,*) 'Input file?'\
+    READ (*,*) FINP\
+    OPEN (2,FILE=FINP)\
+    WRITE (*,*) 'Output file?'\
+    READ (*,*) FOUT\
+    OPEN (1,FILE=FOUT)\
+    write (1,*) 'Hill-Robertson interference with no recombination and haploidy'\
+    write (1,*) 'Coalescence Ne calculated'\
+    write (1,*) ''\
+\
+    READ (2,*) s\
+    READ (2,*) u\
+    READ (2,*) kappa\
+    READ (2,*) N\
+    READ (2,*) nmax\
+    READ (2,*) nsimp\
+    READ (2,*) Tmax\
+   \
+    AN=N\
+    gamm=2*N*s\
+    alpha0=2*N*u\
+    v=u/kappa\
+    pineut=4*N*u*v/(u+v)\
+    pi0=2*(alpha0/gamm)*(1.0-exp(0.0-gamm))/(1.0+kappa*exp(0.0-gamm))\
+    pn=1.0/(1+kappa*exp(0.0-gamm))\
+    rn0=pi0/pineut\
+!   diversity and mean A1 frequency with no HRI\
+\
+    write (1,*) 's= ',s,' N= ',N\
+    write (1,*) 'Scaled selection strength (2Ns)= ',gamm\
+    write (1,*) 'u= ',u\
+    write (1,*) 'Scaled mutation rate to deleterious variants (2Nu)= ',alpha0\
+    write (1,*) 'Mutational bias towards deleterious variants= ',kappa\
+    write (1,*) 'Neutral diversity with no HRI= ',pineut\
+    write (1,*) 'Selected site diversity with no HRI= ',pi0\
+    write (1,*) 'Ratio of selected to neutral diversity= ',rn0\
+    write (1,*) 'Mean frequency of A1 (p) with no HRI= ',pn\
+    write (1,*) ''\
+    write (1,*) 'Maximum number of NR iterations= ',nmax\
+    write (1,*) 'Number of points for Simpson integrations= ',nsimp\
+    write (1,*) 'Upper limit to outer integration= ',Tmax\
+    write (1,*) ''\
+\
+    write (*,*) 's= ',s,' N= ',N\
+    write (*,*) 'Scaled selection strength (2Ns)= ',gamm\
+    write (*,*) 'u= ',u\
+    write (*,*) 'Scaled mutation rate to deleterious variants = ',alpha0\
+    write (*,*) 'Mutational bias towards deleterious variants= ',kappa\
+    write (*,*) 'Neutral diversity= ',pineut\
+    write (*,*) 'Selected site diversity with no HRI= ',pi0\
+    write (*,*) 'Ratio of selected to neutral diversity= ',rn0\
+    write (*,*) 'Mean frequency of A1 (p) with no HRI= ',pn\
+    write (*,*) ''\
+    write (*,*) 'Maximum number of iterations= ',nmax\
+    write (*,*) 'Number of points for Simpson integrations= ',nsimp\
+    write (*,*) 'Upper limit to outer integration= ',Tmax\
+    write (*,*) ''\
+\
+    write (*,*) 'CONT?'\
+    read (*,*) CONT\
+!   allows program to be cancelled if desired\
+    if(CONT.eq.1) go to 100\
+\
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\
+10  write (*,*) 'Genome size?'\
+    read (*,*) lgen\
+    if(lgen.eq.0) go to 100\
+    write (*,*) 'Initial B value?'\
+    read (*,*) B1\
+    write (1,*) ''\
+    write (1,*) ''\
+    write (1,*) 'Genome size= ',lgen\
+    write (*,*) 'Genome size= ',lgen\
+    alpha2=lgen*alpha0\
+!   scaled mutation rate for whole genome\
+    write (1,*) 'alpha2= ',alpha2\
+    write (*,*) 'alpha2= ',alpha2\
+    write (1,*) 'Initial B value= ',B1\
+    write (1,*) ''\
+    write (*,*) 'Initial B value= ',B1\
+    write (*,*) ''\
+\
+    do 20 i=1,nmax\
+    gamexp=dexp(0.0-B1*gamm)\
+    f1=1-gamexp\
+    f2=1+kappa*gamexp\
+    R1=alpha2/gamm\
+    g=((f1/f2)**3)*R1\
+    f0=log(B1)+g\
+    df0=(1.0/B1)+(1.5*alpha2)*(1+kappa)*gamexp*(f1**2)/(f2**4)\
+    df1=abs(df0)\
+    \
+    if(df1.le.f0) then\
+    df0=10*df0\
+    end if\
+\
+    write(*,*)\
+    write (*,*) 'i= ',i,' g= ',g,' f0= ',f0,' df0= ',df0\
+    B2=B1-f0/df0\
+    write (*,*) 'B= ',B2\
+    del=(B1-B2)/B1\
+    del1=abs(del)\
+    if(del1.le.0.00001) go to 30\
+    if(i.ge.nmax) go to 40\
+    B1=B2\
+20  continue\
+    \
+40  write (1,*) ''\
+    write (1,*) 'Iteration does not converge'\
+    write (1,*) 'del= ',del,' f= ',fo\
+    write (1,*) ''\
+    write (1,*) 'BC approximations'\
+    B1=B2\
+\
+    gamexp=exp(0.0-B1*gamm)\
+    p=1.0/(1+kappa*gamexp)\
+    rp=p/pn\
+    pi1=2*(alpha0/gamm)*(1.0-gamexp)/(1.0+kappa*gamexp)\
+    pi2=pi1/pi0\
+    vg=lgen*u*s*f1/f2\
+!   genetic variance\
+    vavm1=(f2/f1)*s\
+!   ratio of mutational variance to genetic variance\
+\
+    write (1,*) 'Predicted mean p= ',p,' Ratio wrt free rec, value = ',rp\
+    write (1,*) 'B= ',B1\
+    write (1,*) 'Predicted selected site pi= ',pi1,' Ratio wrt free rec. value= ',pi2\
+    write (*,*) 'Iteration does not converge'\
+    write (*,*) 'del= ',del,' f= ',fo\
+    write (*,*) ''\
+    write (*,*) 'BC approximations'\
+    write (*,*) 'Predicted mean p= ',p,' Ratio wrt free rec. value = ',rp\
+    write (*,*) 'B= ',B1\
+    write (*,*) 'Predicted pi= ',pi1,' Ratio wrt free rec. value= ',pi2\
+    write (*,*) ''\
+    \
+    B11=B1\
+    go to 50\
+    \
+30  write (1,*) ''\
+    write (1,*) 'Iteration complete'\
+    write (1,*) 'Number of steps= ',i\
+    write (1,*) 'del= ',del,' f= ',fo\
+    write (1,*) ''\
+\
+    B1=B2\
+    gamexp=exp(0.0-B1*gamm)\
+    p=1.0/(1+kappa*gamexp)\
+    rp=p/pn\
+    pi1=2*(alpha0/gamm)*(1.0-gamexp)/(1.0+kappa*gamexp)\
+    pi2=pi1/pi0\
+    vg=lgen*u*s*f1/f2\
+!   genetic variance\
+    vavm1=(f2/f1)*s\
+!   ratio of mutational variance to genetic variance\
+\
+    write (1,*) 'BC approximations'\
+    write (1,*) 'Predicted mean p= ',p,' Ratio wrt free rec, value = ',rp\
+    write (1,*) 'B= ',B1\
+    write (1,*) 'Predicted selected site pi= ',pi1,' Ratio wrt free rec. value= ',pi2\
+    write (1,*) ''\
+\
+    write (*,*) 'Iteration complete'\
+    write (*,*) 'Number of steps= ',i\
+    write (*,*) 'BC approximations'\
+    write (*,*) 'Predicted mean p= ',p,' Ratio wrt free rec, value = ',rp\
+    write (*,*) 'B= ',B1\
+    write (*,*) 'Ratio of selected to neutral diversity= ',pi1,' Ratio wrt free rec. value= ',pi2\
+    write (*,*) ''\
+    B11=B1\
+    \
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\
+!   section for calculation of coalescence Ne\
+50  vavm=0.5*gamm*B11*f2/f1\
+!   mutational variance over variance, scaled by B*N\
+    va3vm2=(alpha2/gamm)*(f1/f2)**3\
+!   ratio (Va**3)/(Vm**2), where Va is the additive variance\
+    write (*,*) 'vavm=',vavm,' va3vm2= ',va3vm2\
+    call asum1(ainteg1,nsimp,va3vm2,vavm,B11,Tmax)\
+!   subroutine to calculate coalescence Ne\
+    B3=ainteg1*B11\
+    pineut1=B3*pineut\
+    rn1=pi1/pineut1\
+    rn2=rn1/rn0\
+    write (1,*) ''\
+    write (1,*) 'Coalescence B value= ',B3\
+    write (1,*) ' pisel/pineut= ',rn1,' Ratio wrt free rec. value= ',rn2\
+    write (1,*) ''\
+    write (*,*) ''\
+    write (*,*) 'Coalescence B value= ',B3\
+    write (*,*) ' pisel/pineut= ',rn1,' Ratio wrt free rec. value= ',rn2\
+    write (*,*) ''\
+\
+    go to 10\
+\
+100 end program hrihap20a\
+\
+    subroutine asum1(ainteg1,nsimp,va3vm2,vavm,B,x2)\
+!   uses Simpson's rule by calling another integral\
+    double precision :: f(2000),x,x2,F1,DX,ans,ainteg1,ainteg2,B,va3vm2,vavm,asum\
+    integer :: nsimp,N1,i,j\
+!   write(*,*) 'Simpson integration'\
+!   write(*,*) 'asum1 entered'\
+!   x2 is upper limit to scaled coalescent time\
+\
+    ans=nsimp\
+    DX=x2/ans\
+    j=0\
+    N1=nsimp+1\
+    asum=0.0\
+!   write(*,*) 'DX',DX\
+    do 50 i=1,N1\
+    x=(i-1)*DX\
+\
+    if(i.eq.1) then\
+    F1=1\
+    asum=F1\
+    go to 50\
+    end if\
+    \
+    call asum2(ainteg2,nsimp,va3vm2,vavm,x)\
+    f(i)=dexp(-B*ainteg2)\
+    F1=f(i)\
+!   write(*,*) 'i= ',i,'x= ',x,' f= ',F1\
+\
+40  if(i.eq.N1) then\
+    F1=f(N1)\
+    asum=asum+F1\
+    go to 60\
+    end if\
+\
+        if(j.eq.0) then\
+    asum=asum+4*F1\
+        j=1\
+        else\
+    asum=asum+2*F1\
+        j=0\
+        end if\
+50        continue\
+\
+60  ainteg1=DX*asum/(3.0)\
+!   write(*,*) 'ainteg1=',ainteg1\
+    end subroutine asum1\
+\
+    subroutine asum2(ainteg2,nsimp,va3vm2,vavm,x2)\
+!   calculates probability of no coalescence over time x2\
+    double precision :: f(2000),x,x1,x2,F1,DX,ans,va3vm2,vavm,ainteg2,asum,g\
+    integer :: nsimp,N1,i,j\
+!   write(*,*) 'Simpson integration'\
+\
+!   write(*,*) ''\
+!   write(*,*) 'asum2 is entered'\
+!   write(*,*) ''\
+    ans=nsimp\
+    DX=x2/ans\
+    j=0\
+    N1=nsimp+1\
+    asum=0.0\
+!   write(*,*) 'DX for asum2',DX\
+!   write(*,*) 'vavm,va3vm2= ',vavm,va3vm2\
+    do 50 i=1,N1\
+    x=(i-1)*DX\
+    g=(1-dexp(0.0-x*vavm))**2\
+    f(i)=dexp(va3vm2*g)\
+    F1=f(i)\
+!   write(*,*) 'i= ',i,'x= ',x,' f= ',F1\
+\
+40  if(i.eq.N1) then\
+    F1=f(N1)\
+    asum=asum+F1\
+    go to 60\
+    end if\
+\
+    if(i.eq.1) then\
+    asum=F1\
+    go to 50\
+    end if\
+    if(j.eq.0) then\
+    asum=asum+4*F1\
+    j=1\
+    else\
+    asum=asum+2*F1\
+    j=0\
+    end if\
+50  continue\
+\
+60  ainteg2=DX*asum/(3.0)\
+!   write(*,*) 'ainteg2=',ainteg2\
+\
+    end subroutine asum2\
+\
+\
+\
+\
+\
+
+\f1\b \
+\
+
+\f0\b0\fs32 \
+}
